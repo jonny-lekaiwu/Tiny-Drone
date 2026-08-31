@@ -1,0 +1,1192 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <link rel="icon" href="data:,">
+  <title>Tiny Drone</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body {
+      background: #101317;
+      color: #f6f7f9;
+      font: 13px system-ui, -apple-system, "Segoe UI", sans-serif;
+      touch-action: none;
+      user-select: none;
+    }
+    #app { position: relative; width: 100%; height: 100%; min-height: 300px; }
+    #landscapeGate {
+      position: fixed;
+      z-index: 20;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 28px;
+      background: #101317;
+      text-align: center;
+      touch-action: manipulation;
+    }
+    .gate-card { display: grid; justify-items: center; gap: 18px; }
+    .phone-icon {
+      width: 94px;
+      height: 54px;
+      border: 4px solid #f6f7f9;
+      border-radius: 10px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.12);
+    }
+    #enterLandscape {
+      min-height: 48px;
+      padding: 0 24px;
+      border: 0;
+      border-radius: 25px;
+      background: #36c86b;
+      color: white;
+      font: 650 16px system-ui, sans-serif;
+    }
+    #landscapeHint { margin: 0; color: #aeb7c1; }
+    #video {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 320px;
+      height: 240px;
+      transform: translate(-50%, -50%);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 8px;
+      box-shadow: 0 8px 28px rgba(0,0,0,.35);
+      background: radial-gradient(circle at center, #28313a, #101317 68%);
+      color: #8e99a5;
+    }
+    #video img {
+      display: block;
+      width: 320px;
+      height: 240px;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      pointer-events: none;
+    }
+    #videoStats {
+      position: absolute;
+      z-index: 4;
+      left: 50%;
+      top: calc(50% + 104px);
+      transform: translateX(-50%);
+      padding: 3px 7px;
+      border-radius: 9px;
+      background: rgba(0,0,0,.58);
+      color: #dce5ec;
+      font-size: 10px;
+      pointer-events: none;
+    }
+    .shade {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(0,0,0,.52), transparent 25%, transparent 68%, rgba(0,0,0,.42));
+    }
+    .topbar {
+      position: absolute;
+      z-index: 3;
+      top: max(8px, env(safe-area-inset-top));
+      left: max(10px, env(safe-area-inset-left));
+      right: max(10px, env(safe-area-inset-right));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+    #battery, .actions > * {
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+      border: 1px solid rgba(255,255,255,.28);
+      border-radius: 17px;
+      background: rgba(15,18,22,.58);
+      box-shadow: 0 4px 18px rgba(0,0,0,.24);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    #battery { padding: 0 8px; font-size: 11px; font-weight: 650; transition: color .18s ease, border-color .18s ease; }
+    #battery.low { color: #ffd166; border-color: rgba(255,209,102,.78); }
+    #battery.critical { color: #ff9b98; border-color: rgba(255,123,120,.88); }
+    .actions { display: flex; gap: 6px; pointer-events: auto; }
+    .actions button, .switch { color: white; font-size: 10px; font-weight: 650; }
+    .actions button { padding: 0 8px; cursor: pointer; }
+    .actions button:disabled {
+      cursor: not-allowed;
+      opacity: .38;
+      color: #a0a6ad;
+      border-color: rgba(255,255,255,.12);
+    }
+    #connectToggle.connected { border-color: #ff7b78; color: #ffb0ae; }
+    #update { border: 1px solid rgba(255,255,255,.28); }
+    .switch { gap: 6px; padding: 0 9px; cursor: pointer; }
+    .switch input { position: absolute; opacity: 0; pointer-events: none; }
+    .track {
+      position: relative;
+      width: 30px;
+      height: 18px;
+      border-radius: 10px;
+      background: #5b626b;
+      transition: .18s ease;
+    }
+    .track::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: white;
+      transition: .18s ease;
+    }
+    .switch input:checked + .track { background: #36c86b; }
+    .switch input:checked + .track::after { transform: translateX(12px); }
+    .switch input:checked ~ .switch-text { color: #36c86b; }
+    .switch-text { color: white; transition: color .18s ease; }
+    #settingsPanel {
+      position: fixed;
+      z-index: 30;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 24px;
+      background: rgba(0,0,0,.62);
+      touch-action: manipulation;
+    }
+    #settingsPanel.open { display: grid; }
+    .settings-card {
+      width: min(360px, 88vw);
+      padding: 22px;
+      display: grid;
+      gap: 14px;
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 18px;
+      background: #20262d;
+      box-shadow: 0 18px 60px rgba(0,0,0,.5);
+    }
+    .settings-card h2 { margin: 0 0 4px; font-size: 20px; }
+    .trim-setting {
+      display: grid;
+      grid-template-columns: 72px 1fr 48px;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .trim-setting input { width: 100%; accent-color: #36c86b; }
+    .trim-setting output {
+      text-align: right;
+      color: #79dfa0;
+      font-variant-numeric: tabular-nums;
+    }
+    .settings-divider { height: 1px; background: rgba(255,255,255,.14); }
+    .settings-card button {
+      min-height: 46px;
+      border: 0;
+      border-radius: 12px;
+      color: white;
+      background: #3b4652;
+      font: 650 15px system-ui, sans-serif;
+    }
+    #firmwareUpdate { background: #258bd2; }
+    .controls {
+      position: absolute;
+      z-index: 2;
+      left: max(3.5vw, env(safe-area-inset-left));
+      right: max(3.5vw, env(safe-area-inset-right));
+      bottom: max(4vh, env(safe-area-inset-bottom));
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+    .stick-wrap { display: grid; justify-items: center; gap: 7px; }
+    .stick {
+      --size: clamp(180px, min(28vw, calc((100vw - 320px) / 2 - 36px)), 340px);
+      position: relative;
+      width: var(--size);
+      height: var(--size);
+      border: 2px solid rgba(255,255,255,.76);
+      border-radius: 50%;
+      background: rgba(20,24,29,.17);
+      box-shadow: inset 0 0 40px rgba(0,0,0,.24), 0 6px 24px rgba(0,0,0,.22);
+      pointer-events: auto;
+      touch-action: none;
+    }
+    .stick::before, .stick::after {
+      content: "";
+      position: absolute;
+      background: rgba(255,255,255,.20);
+      pointer-events: none;
+    }
+    .stick::before { left: 16%; right: 16%; top: 50%; height: 1px; }
+    .stick::after { top: 16%; bottom: 16%; left: 50%; width: 1px; }
+    .knob {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 36%;
+      height: 36%;
+      margin: -18%;
+      border: 2px solid rgba(255,255,255,.9);
+      border-radius: 50%;
+      background: rgba(216,222,228,.66);
+      box-shadow: 0 5px 18px rgba(0,0,0,.32);
+      pointer-events: none;
+      transform: translate(0,0);
+    }
+    #leftKnob { transform: translate(0, 88%); }
+    .stick-label { color: rgba(255,255,255,.76); font-size: 11px; text-shadow: 0 1px 4px #000; }
+    #status {
+      position: absolute;
+      z-index: 3;
+      left: 50%;
+      bottom: max(18px, env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      padding: 8px 15px;
+      border-radius: 18px;
+      background: rgba(15,18,22,.55);
+      color: rgba(255,255,255,.82);
+      font-size: 11px;
+      pointer-events: none;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    @media (max-height: 500px) {
+      .stick { --size: clamp(140px, min(48vh, calc((100vw - 320px) / 2 - 20px)), 230px); }
+      .controls { bottom: max(12px, env(safe-area-inset-bottom)); }
+      .stick-label { display: none; }
+      #status { bottom: 10px; }
+    }
+    @media (orientation: portrait) {
+      #landscapeGate { display: none; }
+      #video {
+        top: 38%;
+        width: min(320px, calc(100vw - 24px));
+        height: min(240px, calc((100vw - 24px) * .75));
+      }
+      #video img { width: 100%; height: 100%; }
+      #videoStats { top: calc(38% + min(108px, calc((100vw - 24px) * .34))); }
+      .topbar { align-items: flex-start; }
+      .actions {
+        max-width: calc(100vw - 66px);
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 4px;
+      }
+      .actions button, .switch { min-height: 28px; font-size: 9px; }
+      .actions button { padding: 0 6px; }
+      .switch { gap: 4px; padding: 0 6px; }
+      .track { width: 26px; height: 16px; }
+      .track::after { top: 3px; left: 3px; width: 10px; height: 10px; }
+      .switch input:checked + .track::after { transform: translateX(10px); }
+      .stick { --size: clamp(120px, 36vw, 160px); }
+      .controls {
+        left: max(12px, env(safe-area-inset-left));
+        right: max(12px, env(safe-area-inset-right));
+        bottom: max(7vh, env(safe-area-inset-bottom));
+      }
+      .stick-label { font-size: 11px; }
+      #status { bottom: max(8px, env(safe-area-inset-bottom)); }
+    }
+  </style>
+</head>
+<body>
+  <aside id="landscapeGate">
+    <div class="gate-card">
+      <div class="phone-icon"></div>
+      <strong>请使用横屏控制无人机</strong>
+      <button id="enterLandscape" type="button">进入横屏控制</button>
+      <p id="landscapeHint">点击后将尝试自动切换横屏</p>
+    </div>
+  </aside>
+  <aside id="settingsPanel">
+    <div class="settings-card">
+      <h2>设置</h2>
+      <label class="trim-setting">
+        <span>Roll微调</span>
+        <input id="rollTrim" type="range" min="-5" max="5" step="0.1" value="0">
+        <output id="rollTrimValue">+0.0°</output>
+      </label>
+      <label class="trim-setting">
+        <span>Pitch微调</span>
+        <input id="pitchTrim" type="range" min="-5" max="5" step="0.1" value="0">
+        <output id="pitchTrimValue">+0.0°</output>
+      </label>
+      <div class="settings-divider"></div>
+      <button id="resetSettings" type="button">重置所有设置</button>
+      <button id="firmwareUpdate" type="button">固件更新</button>
+      <button id="closeSettings" type="button">关闭</button>
+    </div>
+  </aside>
+  <main id="app">
+    <div id="video"><span id="videoText">点击连接开始图传</span></div>
+    <div id="videoStats">-- FPS</div>
+    <div class="shade"></div>
+    <header class="topbar">
+      <div id="battery">
+        <span id="batteryValue">--V</span>
+      </div>
+      <div class="actions">
+        <button id="connectToggle" type="button">连接</button>
+        <label class="switch">
+          <input id="carefree" type="checkbox">
+          <span class="track"></span>
+          <span class="switch-text">无头模式</span>
+        </label>
+        <label class="switch">
+          <input id="yawLocked" type="checkbox" checked>
+          <span class="track"></span>
+          <span class="switch-text">YAW锁定</span>
+        </label>
+        <button id="orientationToggle" type="button">竖屏</button>
+        <button id="settings" type="button">设置</button>
+      </div>
+    </header>
+    <section class="controls">
+      <div class="stick-wrap">
+        <div class="stick" id="leftStick"><div class="knob" id="leftKnob"></div></div>
+        <div class="stick-label">油门 · YAW</div>
+      </div>
+      <div class="stick-wrap">
+        <div class="stick" id="rightStick"><div class="knob" id="rightKnob"></div></div>
+        <div class="stick-label">前后 · 左右</div>
+      </div>
+    </section>
+    <div id="status">触摸摇杆开始控制</div>
+  </main>
+  <script>
+    const state = { throttle: 0, yaw: 0, roll: 0, pitch: 0 };
+    const carefree = document.getElementById('carefree');
+    const yawLocked = document.getElementById('yawLocked');
+    const status = document.getElementById('status');
+    const battery = document.getElementById('battery');
+    const batteryValue = document.getElementById('batteryValue');
+    const landscapeHint = document.getElementById('landscapeHint');
+    const connectToggle = document.getElementById('connectToggle');
+    const settingsButton = document.getElementById('settings');
+    const rollTrim = document.getElementById('rollTrim');
+    const pitchTrim = document.getElementById('pitchTrim');
+    const rollTrimValue = document.getElementById('rollTrimValue');
+    const pitchTrimValue = document.getElementById('pitchTrimValue');
+    const THROTTLE_SEND_MIN = 50;
+    const SETTINGS_STORAGE_KEY = 'tinyDroneWebSettings';
+    const DEFAULT_SETTINGS = Object.freeze({
+      rollTrim: 0,
+      pitchTrim: 0,
+      carefree: false,
+      yawLocked: true
+    });
+    const WS_VIDEO_MAGIC = 0x44575654;
+    const WS_VIDEO_HEADER_SIZE = 34;
+    let enabled = false;
+    let controlWorker = null;
+    let controlConnected = false;
+    let videoWorker = null;
+    let landscapeLockRequested = false;
+    let wsVideoFrameId = -1;
+    let wsVideoFrame = null;
+    let wsVideoReceived = 0;
+    let wsVideoImage = null;
+    let lastVideoPacketAt = 0;
+    let desiredConnected = false;
+    let cameraAvailable = false;
+    let lastRenderedFrameAt = 0;
+    let activeVideoUrl = null;
+    let videoDecodeBusy = false;
+    let pendingVideoFrame = null;
+    let displayedFrameCount = 0;
+    let fpsWindowStartedAt = 0;
+    let fpsTimer = null;
+    let batteryPollTimer = null;
+
+    function resetDisplayedFps(running) {
+      displayedFrameCount = 0;
+      fpsWindowStartedAt = performance.now();
+      document.getElementById('videoStats').textContent = running ? '等待画面' : '-- FPS';
+      clearInterval(fpsTimer);
+      fpsTimer = null;
+      if (!running) return;
+      fpsTimer = setInterval(() => {
+        const now = performance.now();
+        const elapsed = now - fpsWindowStartedAt;
+        if (elapsed < 500) return;
+        const fps = displayedFrameCount * 1000 / elapsed;
+        document.getElementById('videoStats').textContent = `${fps.toFixed(1)} FPS`;
+        displayedFrameCount = 0;
+        fpsWindowStartedAt = now;
+      }, 1000);
+    }
+
+    const MAX_YAW_ANGLE = 360;
+
+    function updateBattery(voltage) {
+      if (!Number.isFinite(voltage) || voltage <= 0) return;
+      batteryValue.textContent = `${voltage.toFixed(2)}V`;
+      battery.classList.toggle('low', voltage < 3.60 && voltage >= 3.40);
+      battery.classList.toggle('critical', voltage < 3.40);
+    }
+
+    async function pollBattery() {
+      if (!desiredConnected) return;
+      try {
+        const response = await fetch('/api/battery', { cache: 'no-store' });
+        const voltage = Number.parseFloat(await response.text());
+        updateBattery(voltage);
+      } catch (_) {
+        /* Keep the last valid reading visible while a short reconnect happens. */
+      }
+    }
+
+    function startBatteryPolling() {
+      clearInterval(batteryPollTimer);
+      pollBattery();
+      batteryPollTimer = setInterval(pollBattery, 1000);
+    }
+
+    function clampTrim(value) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return 0;
+      return Math.round(Math.max(-5, Math.min(5, number)) * 10) / 10;
+    }
+
+    function updateTrimLabels() {
+      rollTrimValue.textContent = `${Number(rollTrim.value) >= 0 ? '+' : ''}${Number(rollTrim.value).toFixed(1)}°`;
+      pitchTrimValue.textContent = `${Number(pitchTrim.value) >= 0 ? '+' : ''}${Number(pitchTrim.value).toFixed(1)}°`;
+    }
+
+    function applySettings(settings) {
+      rollTrim.value = clampTrim(settings.rollTrim);
+      pitchTrim.value = clampTrim(settings.pitchTrim);
+      carefree.checked = settings.carefree === true;
+      yawLocked.checked = settings.yawLocked !== false;
+      if (carefree.checked) yawLocked.checked = false;
+      updateTrimLabels();
+    }
+
+    function saveSettings() {
+      const settings = {
+        rollTrim: clampTrim(rollTrim.value),
+        pitchTrim: clampTrim(pitchTrim.value),
+        carefree: carefree.checked,
+        yawLocked: yawLocked.checked
+      };
+      try { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)); }
+      catch (_) { /* Private browsing or disabled storage: keep session values. */ }
+    }
+
+    function loadSettings() {
+      let settings = DEFAULT_SETTINGS;
+      try {
+        const saved = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY));
+        if (saved && typeof saved === 'object') settings = { ...DEFAULT_SETTINGS, ...saved };
+      } catch (_) { /* Ignore damaged or unavailable browser storage. */ }
+      applySettings(settings);
+    }
+
+    function bindStick(stickId, knobId, isLeft) {
+      const stick = document.getElementById(stickId);
+      const knob = document.getElementById(knobId);
+      let pointerId = null;
+      let savedY = isLeft ? 0.78 : 0;
+
+      function update(event) {
+        const box = stick.getBoundingClientRect();
+        const radius = box.width / 2;
+        let x = (event.clientX - box.left - radius) / radius;
+        let y = (event.clientY - box.top - radius) / radius;
+        const length = Math.hypot(x, y);
+        if (length > 0.78) { x *= 0.78 / length; y *= 0.78 / length; }
+        const normalizedX = x / 0.78;
+        const normalizedY = y / 0.78;
+        if (isLeft) {
+          const yawX = yawLocked.checked ? 0 : x;
+          knob.style.transform = `translate(${yawX * 113}%,${y * 113}%)`;
+          state.yaw = yawLocked.checked ? 0 : normalizedX * (carefree.checked ? MAX_YAW_ANGLE : 90);
+          state.throttle = Math.round((1 - normalizedY) * 27500);
+          savedY = y;
+        } else {
+          knob.style.transform = `translate(${x * 113}%,${y * 113}%)`;
+          state.roll = normalizedX * 15;
+          state.pitch = normalizedY * 15;
+        }
+      }
+
+      stick.addEventListener('pointerdown', event => {
+        if (!desiredConnected) {
+          status.textContent = '请先点击连接';
+          return;
+        }
+        if (!controlConnected) {
+          status.textContent = '控制连接中';
+          return;
+        }
+        if (!landscapeLockRequested &&
+            matchMedia('(orientation: landscape)').matches) {
+          landscapeLockRequested = true;
+          enterLandscape().then(success => {
+            landscapeLockRequested = success;
+          });
+        }
+        pointerId = event.pointerId;
+        stick.setPointerCapture(pointerId);
+        enabled = true;
+        status.textContent = '网页控制中';
+        update(event);
+        sendControl(true);
+      });
+      stick.addEventListener('pointermove', event => {
+        if (event.pointerId === pointerId) {
+          update(event);
+          sendControl(false);
+        }
+      });
+      function release(event) {
+        if (event.pointerId !== pointerId) return;
+        pointerId = null;
+        if (isLeft) {
+          state.throttle = 0;
+          state.yaw = 0;
+          savedY = 0.78;
+          knob.style.transform = 'translate(0,88%)';
+        } else {
+          state.roll = 0;
+          state.pitch = 0;
+          knob.style.transform = 'translate(0,0)';
+        }
+        sendControl(true);
+      }
+      stick.addEventListener('pointerup', release);
+      stick.addEventListener('pointercancel', event => {
+        if (event.pointerId !== pointerId) return;
+        pointerId = null;
+        if (isLeft) {
+          state.throttle = 0;
+          state.yaw = 0;
+          savedY = 0.78;
+          knob.style.transform = 'translate(0,88%)';
+          enabled = true;
+          sendControl(true);
+          status.textContent = '油门已归零';
+          return;
+        }
+        enabled = false;
+        pauseControl();
+        status.textContent = '触摸中断，等待飞控超时保护';
+      });
+      stick.addEventListener('lostpointercapture', event => {
+        if (event.pointerId !== pointerId) return;
+        pointerId = null;
+        if (isLeft) {
+          state.throttle = 0;
+          state.yaw = 0;
+          savedY = 0.78;
+          knob.style.transform = 'translate(0,88%)';
+          enabled = true;
+          sendControl(true);
+          status.textContent = '油门已归零';
+          return;
+        }
+        enabled = false;
+        pauseControl();
+        status.textContent = '触摸中断，等待飞控超时保护';
+      });
+      if (isLeft) {
+        yawLocked.addEventListener('change', () => {
+          if (yawLocked.checked) {
+            state.yaw = 0;
+            knob.style.transform = `translate(0,${savedY * 113}%)`;
+          }
+        });
+      }
+    }
+
+    function renderVideoFrame(frameBytes) {
+      if (!desiredConnected) return;
+      /* JPEG decoding is single-flight. While one image is decoding, replace
+       * the pending frame so the browser never works through an old backlog. */
+      pendingVideoFrame = frameBytes;
+      if (videoDecodeBusy) return;
+      decodeLatestVideoFrame();
+    }
+
+    function decodeLatestVideoFrame() {
+      if (!desiredConnected || videoDecodeBusy || !pendingVideoFrame) return;
+      const frameBytes = pendingVideoFrame;
+      pendingVideoFrame = null;
+      videoDecodeBusy = true;
+      if (!wsVideoImage) {
+        wsVideoImage = new Image();
+        wsVideoImage.alt = 'Tiny Drone video';
+        document.getElementById('video').replaceChildren(wsVideoImage);
+      }
+      const objectUrl = URL.createObjectURL(
+        new Blob([frameBytes], { type: 'image/jpeg' }));
+      activeVideoUrl = objectUrl;
+      wsVideoImage.onload = () => {
+        if (activeVideoUrl === objectUrl) activeVideoUrl = null;
+        URL.revokeObjectURL(objectUrl);
+        videoDecodeBusy = false;
+        lastRenderedFrameAt = performance.now();
+        displayedFrameCount++;
+        decodeLatestVideoFrame();
+      };
+      wsVideoImage.onerror = () => {
+        if (activeVideoUrl === objectUrl) activeVideoUrl = null;
+        URL.revokeObjectURL(objectUrl);
+        videoDecodeBusy = false;
+        decodeLatestVideoFrame();
+      };
+      wsVideoImage.src = objectUrl;
+    }
+
+    function handleControlMessage(data) {
+        if (!(data instanceof ArrayBuffer)) return;
+        const bytes = new Uint8Array(data);
+        if (bytes.byteLength === 4) {
+          const view = new DataView(data);
+          cameraAvailable = bytes[1] === 1;
+          updateBattery(view.getUint16(2, true) / 1000);
+          /* A transient rejected packet is not a connection fault. Keep the
+           * current control status unchanged; onclose handles real loss. */
+          return;
+        }
+        if (bytes.byteLength === 1) {
+          /* A rejected packet is not an emergency-stop command. Commander
+           * WDT handles a real interruption when accepted packets cease. */
+          return;
+        }
+        if (bytes.byteLength < WS_VIDEO_HEADER_SIZE) return;
+        const view = new DataView(data);
+        if (view.getUint32(0, true) !== WS_VIDEO_MAGIC) return;
+        /* Do not synthesize zero throttle from a transient rejected packet. */
+
+        const frameId = view.getUint32(20, true);
+        const totalSize = view.getUint32(24, true);
+        const offset = view.getUint32(28, true);
+        const dataLength = view.getUint16(32, true);
+        if (!dataLength || totalSize < dataLength ||
+            WS_VIDEO_HEADER_SIZE + dataLength > bytes.byteLength) return;
+
+        if (frameId !== wsVideoFrameId || offset === 0) {
+          wsVideoFrameId = frameId;
+          wsVideoFrame = new Uint8Array(totalSize);
+          wsVideoReceived = 0;
+        }
+        if (!wsVideoFrame || offset !== wsVideoReceived ||
+            offset + dataLength > wsVideoFrame.length) return;
+
+        wsVideoFrame.set(bytes.subarray(WS_VIDEO_HEADER_SIZE,
+                                        WS_VIDEO_HEADER_SIZE + dataLength), offset);
+        wsVideoReceived += dataLength;
+        if (wsVideoReceived === wsVideoFrame.length) {
+          renderVideoFrame(wsVideoFrame);
+          wsVideoFrame = null;
+          wsVideoReceived = 0;
+        }
+    }
+
+    function ensureControlWorker() {
+      if (controlWorker) return;
+      const source = `
+        let socket = null;
+        let desired = false;
+        let latest = null;
+        let active = false;
+        let endpoint = '';
+        let reconnectTimer = null;
+        let disconnectedAt = 0;
+        let congestedAt = 0;
+        const MAX_BUFFERED_BYTES = 120;
+        const MAX_CONGESTION_MS = 250;
+
+        function connect() {
+          if (!desired || !endpoint || (socket && socket.readyState <= 1)) return;
+          const candidate = new WebSocket(endpoint);
+          socket = candidate;
+          candidate.binaryType = 'arraybuffer';
+          candidate.onopen = () => {
+            const outage = disconnectedAt ? Date.now() - disconnectedAt : 0;
+            disconnectedAt = 0;
+            congestedAt = 0;
+            if (outage > 1000) active = false;
+            postMessage({ type: 'open', outage });
+            sendLatest();
+          };
+          candidate.onmessage = event => {
+            if (candidate !== socket || !(event.data instanceof ArrayBuffer)) return;
+            postMessage({ type: 'data', data: event.data }, [event.data]);
+          };
+          candidate.onerror = () => candidate.close();
+          candidate.onclose = () => {
+            if (candidate !== socket) return;
+            socket = null;
+            if (!desired) return;
+            if (!disconnectedAt) disconnectedAt = Date.now();
+            postMessage({ type: 'close' });
+            clearTimeout(reconnectTimer);
+            reconnectTimer = setTimeout(connect, 100);
+          };
+        }
+
+        function sendLatest() {
+          if (!desired || !active || !latest || !socket ||
+              socket.readyState !== WebSocket.OPEN) return;
+          if (socket.bufferedAmount > MAX_BUFFERED_BYTES) {
+            if (!congestedAt) congestedAt = Date.now();
+            if (Date.now() - congestedAt > MAX_CONGESTION_MS) {
+              socket.close(4000, 'control congestion');
+            }
+            return;
+          }
+          congestedAt = 0;
+          socket.send(latest);
+        }
+
+        onmessage = event => {
+          const message = event.data;
+          if (message.type === 'start') {
+            desired = true;
+            endpoint = message.endpoint;
+            connect();
+          } else if (message.type === 'stop') {
+            desired = false;
+            active = false;
+            clearTimeout(reconnectTimer);
+            if (socket) socket.close(1000, 'user disconnect');
+            socket = null;
+          } else if (message.type === 'control') {
+            latest = message.data;
+            active = message.active;
+            if (message.immediate) sendLatest();
+          } else if (message.type === 'active') {
+            active = message.active;
+          }
+        };
+        setInterval(sendLatest, 50);
+      `;
+      controlWorker = new Worker(URL.createObjectURL(
+        new Blob([source], { type: 'text/javascript' })));
+      controlWorker.onmessage = event => {
+        const message = event.data;
+        if (message.type === 'data') {
+          handleControlMessage(message.data);
+        } else if (message.type === 'open') {
+          controlConnected = true;
+          if (enabled && message.outage > 1000) enabled = false;
+          status.textContent = enabled ? '网页控制中' : '触摸摇杆开始控制';
+          sendControl(true);
+        } else if (message.type === 'close') {
+          controlConnected = false;
+          if (desiredConnected) status.textContent = '控制连接重连中';
+        }
+      };
+    }
+
+    function connectControl() {
+      if (!desiredConnected) return;
+      ensureControlWorker();
+      const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+      controlWorker.postMessage({
+        type: 'start',
+        endpoint: `${protocol}://${location.host}/ws/control`
+      });
+    }
+
+    function connectVideoWs() {
+      if (!desiredConnected) return;
+      if (!videoWorker) {
+        const source = `
+          const MAGIC = 0x44575654;
+          const HEADER_SIZE = 34;
+          let socket = null;
+          let desired = false;
+          let endpoint = '';
+          let reconnectTimer = null;
+          let frameId = -1;
+          let frame = null;
+          let received = 0;
+
+          function resetFrame() {
+            frameId = -1;
+            frame = null;
+            received = 0;
+          }
+
+          function handlePacket(data) {
+            const bytes = new Uint8Array(data);
+            if (bytes.length < HEADER_SIZE) return;
+            const view = new DataView(data);
+            if (view.getUint32(0, true) !== MAGIC) return;
+            const nextId = view.getUint32(20, true);
+            const total = view.getUint32(24, true);
+            const offset = view.getUint32(28, true);
+            const length = view.getUint16(32, true);
+            if (!length || offset + length > total ||
+                HEADER_SIZE + length > bytes.length) return;
+            if (nextId !== frameId || offset === 0) {
+              frameId = nextId;
+              frame = new Uint8Array(total);
+              received = 0;
+            }
+            if (!frame || offset !== received) return;
+            frame.set(bytes.subarray(HEADER_SIZE, HEADER_SIZE + length), offset);
+            received += length;
+            if (received === frame.length) {
+              const completed = frame.buffer;
+              frame = null;
+              received = 0;
+              postMessage({ type: 'frame', data: completed }, [completed]);
+            }
+          }
+
+          function connect() {
+            if (!desired || !endpoint || (socket && socket.readyState <= 1)) return;
+            const candidate = new WebSocket(endpoint);
+            socket = candidate;
+            candidate.binaryType = 'arraybuffer';
+            candidate.onopen = () => postMessage({ type: 'open' });
+            candidate.onmessage = event => {
+              if (candidate === socket && event.data instanceof ArrayBuffer) {
+                handlePacket(event.data);
+              }
+            };
+            candidate.onerror = () => candidate.close();
+            candidate.onclose = () => {
+              if (candidate !== socket) return;
+              socket = null;
+              resetFrame();
+              if (!desired) return;
+              postMessage({ type: 'close' });
+              clearTimeout(reconnectTimer);
+              reconnectTimer = setTimeout(connect, 300);
+            };
+          }
+
+          onmessage = event => {
+            const message = event.data;
+            if (message.type === 'start') {
+              desired = true;
+              endpoint = message.endpoint;
+              connect();
+            } else if (message.type === 'stop') {
+              desired = false;
+              clearTimeout(reconnectTimer);
+              resetFrame();
+              if (socket) socket.close(1000, 'user disconnect');
+              socket = null;
+            }
+          };
+        `;
+        videoWorker = new Worker(URL.createObjectURL(
+          new Blob([source], { type: 'text/javascript' })));
+        videoWorker.onmessage = event => {
+          if (event.data.type === 'frame') {
+            lastVideoPacketAt = Date.now();
+            renderVideoFrame(new Uint8Array(event.data.data));
+          } else if (event.data.type === 'open') {
+            lastVideoPacketAt = Date.now();
+          }
+        };
+      }
+      const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+      videoWorker.postMessage({
+        type: 'start',
+        endpoint: `${protocol}://${location.hostname}:81/ws/video`
+      });
+    }
+
+    async function enterLandscape() {
+      let fullscreenReady = Boolean(document.fullscreenElement);
+      let orientationReady = matchMedia('(orientation: landscape)').matches;
+      let orientationLocked = false;
+
+      /* Keep the two attempts independent. Some Android browsers allow an
+       * orientation lock without fullscreen, while others require fullscreen
+       * and a user gesture. iOS may reject either call. */
+      if (!fullscreenReady && document.documentElement.requestFullscreen) {
+        try {
+          await document.documentElement.requestFullscreen();
+          fullscreenReady = true;
+        } catch (error) {
+          fullscreenReady = false;
+        }
+      }
+
+      if (screen.orientation && screen.orientation.lock) {
+        try {
+          await screen.orientation.lock('landscape');
+          orientationReady = true;
+          orientationLocked = true;
+        } catch (error) {
+          orientationReady = matchMedia('(orientation: landscape)').matches;
+        }
+      }
+
+      if (!orientationReady) {
+        landscapeHint.textContent = '当前浏览器无法锁定方向，请直接横放手机';
+      }
+      return orientationLocked;
+    }
+
+    async function enterPortraitMode() {
+      landscapeLockRequested = false;
+
+      let portraitLocked = false;
+      try {
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        }
+      } catch (error) {
+        /* Orientation lock may still work without fullscreen. */
+      }
+
+      try {
+        if (screen.orientation && screen.orientation.lock) {
+          await screen.orientation.lock('portrait');
+          portraitLocked = true;
+        }
+      } catch (error) {
+        portraitLocked = false;
+      }
+
+      if (!portraitLocked) {
+        try {
+          if (screen.orientation && screen.orientation.unlock) {
+            screen.orientation.unlock();
+          }
+        } catch (error) {
+          /* The browser may not implement orientation unlocking. */
+        }
+        try {
+          if (document.fullscreenElement && document.exitFullscreen) {
+            await document.exitFullscreen();
+          }
+        } catch (error) {
+          /* Exiting fullscreen can be rejected while the page is changing. */
+        }
+        landscapeHint.textContent = '无法自动切换竖屏，请将手机竖直放置';
+      }
+    }
+
+    function handleOrientationChange(isLandscape) {
+      document.getElementById('orientationToggle').textContent =
+        isLandscape ? '竖屏' : '横屏';
+      if (isLandscape) {
+        landscapeHint.textContent = '已进入横屏控制';
+      } else {
+        landscapeHint.textContent = '已进入竖屏控制';
+      }
+    }
+
+    function toggleOrientation() {
+      if (matchMedia('(orientation: landscape)').matches) {
+        enterPortraitMode();
+      } else {
+        enterLandscape();
+      }
+    }
+
+    function sendControl(immediate = false) {
+      if (!desiredConnected || !controlConnected || !controlWorker) return;
+      const controlOffset = 0;
+      const buffer = new ArrayBuffer(15);
+      const data = new DataView(buffer);
+      const commandedRoll = Math.max(-15, Math.min(15, state.roll + Number(rollTrim.value)));
+      const commandedPitch = Math.max(-15, Math.min(15, state.pitch + Number(pitchTrim.value)));
+      data.setFloat32(controlOffset + 0, commandedRoll, true);
+      data.setFloat32(controlOffset + 4, commandedPitch, true);
+      data.setFloat32(controlOffset + 8, state.yaw, true);
+      const throttle = enabled && state.throttle >= THROTTLE_SEND_MIN ? state.throttle : 0;
+      data.setUint16(controlOffset + 12, throttle, true);
+      data.setUint8(controlOffset + 14, carefree.checked ? 1 : 0);
+      controlWorker.postMessage({
+        type: 'control', data: buffer, active: enabled, immediate
+      }, [buffer]);
+    }
+
+    function pauseControl() {
+      if (controlWorker) {
+        controlWorker.postMessage({ type: 'active', active: false });
+      }
+    }
+
+    function emergencyStop(message) {
+      enabled = false;
+      state.throttle = state.yaw = state.roll = state.pitch = 0;
+      document.getElementById('leftKnob').style.transform = 'translate(0,88%)';
+      document.getElementById('rightKnob').style.transform = 'translate(0,0)';
+      status.textContent = message;
+    }
+
+    let videoReconnectTimer = null;
+
+    function showVideoMessage(message) {
+      const text = document.createElement('span');
+      text.id = 'videoText';
+      text.textContent = message;
+      document.getElementById('video').replaceChildren(text);
+    }
+
+    function scheduleVideoReconnect(delay = 800) {
+      clearTimeout(videoReconnectTimer);
+      if (desiredConnected) videoReconnectTimer = setTimeout(connectVideo, delay);
+    }
+
+    function connectVideo() {
+      connectVideoWs();
+      return;
+      if (!desiredConnected) return;
+      clearTimeout(videoReconnectTimer);
+      fetch('/api/camera', { cache: 'no-store' })
+        .then(response => response.text())
+        .then(value => {
+          if (value === '1') {
+            const image = new Image();
+            image.alt = 'Tiny Drone video';
+            image.onerror = () => {
+              if (!image.isConnected) return;
+              image.removeAttribute('src');
+              showVideoMessage('视频重新连接中…');
+              scheduleVideoReconnect();
+            };
+            image.src = `${location.protocol}//${location.hostname}:81/stream?t=${Date.now()}`;
+            document.getElementById('video').replaceChildren(image);
+          } else {
+            showVideoMessage('暂无视频信号');
+            scheduleVideoReconnect(2000);
+          }
+        })
+        .catch(() => {
+          showVideoMessage('视频重新连接中…');
+          scheduleVideoReconnect(2000);
+        });
+    }
+
+
+
+    function startConnections() {
+      desiredConnected = true;
+      settingsButton.disabled = true;
+      connectToggle.textContent = '断开';
+      connectToggle.classList.add('connected');
+      status.textContent = '正在连接…';
+      lastRenderedFrameAt = 0;
+      resetDisplayedFps(true);
+      connectControl();
+      startBatteryPolling();
+      cameraAvailable = true;
+      connectVideo();
+    }
+
+    function stopConnections() {
+      // Disconnect both WebSockets without manufacturing a zero-throttle
+      // command. Only the control WS feeds Commander setpoints, so once it is
+      // closed the existing Commander WDT naturally expires. The video WS has
+      // no effect on the control timestamp.
+      enabled = false;
+      settingsButton.disabled = false;
+      status.textContent = '已断开';
+      desiredConnected = false;
+      clearTimeout(videoReconnectTimer);
+      clearInterval(batteryPollTimer);
+      batteryPollTimer = null;
+      resetDisplayedFps(false);
+      if (controlWorker) controlWorker.postMessage({ type: 'stop' });
+      if (videoWorker) videoWorker.postMessage({ type: 'stop' });
+      const videoImage = document.querySelector('#video img');
+      if (videoImage) videoImage.src = '';
+      controlConnected = false;
+      wsVideoFrame = null;
+      wsVideoReceived = 0;
+      wsVideoImage = null;
+      pendingVideoFrame = null;
+      videoDecodeBusy = false;
+      if (activeVideoUrl) URL.revokeObjectURL(activeVideoUrl);
+      activeVideoUrl = null;
+      batteryValue.textContent = '--V';
+      battery.classList.remove('low', 'critical');
+      connectToggle.textContent = '连接';
+      connectToggle.classList.remove('connected');
+      showVideoMessage('点击连接开始图传');
+    }
+
+    connectToggle.addEventListener('click', () => {
+      if (desiredConnected) stopConnections();
+      else startConnections();
+    });
+
+    const settingsPanel = document.getElementById('settingsPanel');
+    settingsButton.addEventListener('click', () => {
+      settingsPanel.classList.add('open');
+    });
+    document.getElementById('closeSettings').addEventListener('click', () => {
+      settingsPanel.classList.remove('open');
+    });
+    rollTrim.addEventListener('input', () => { updateTrimLabels(); saveSettings(); });
+    pitchTrim.addEventListener('input', () => { updateTrimLabels(); saveSettings(); });
+    carefree.addEventListener('change', () => {
+      if (carefree.checked) yawLocked.checked = false;
+      saveSettings();
+    });
+    yawLocked.addEventListener('change', () => {
+      if (yawLocked.checked) carefree.checked = false;
+      saveSettings();
+    });
+    document.getElementById('resetSettings').addEventListener('click', () => {
+      applySettings(DEFAULT_SETTINGS);
+      saveSettings();
+      state.yaw = 0;
+      status.textContent = '设置已恢复默认值';
+    });
+    document.getElementById('firmwareUpdate').addEventListener('click', () => {
+      emergencyStop('已停止控制');
+        sendControl(true);
+      setTimeout(() => { location.href = '/update'; }, 60);
+    });
+    document.getElementById('enterLandscape').addEventListener('click', enterLandscape);
+    document.getElementById('orientationToggle').addEventListener('click', toggleOrientation);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        enabled = false;
+        pauseControl();
+        status.textContent = '页面已隐藏，等待飞控超时保护';
+      }
+    });
+    window.addEventListener('pagehide', () => {
+      // Do not synthesize a zero-throttle command during an automatic page
+      // lifecycle event. Stop producing packets and let Commander WDT use the
+      // last valid setpoint timestamp.
+      enabled = false;
+      pauseControl();
+      desiredConnected = false;
+    });
+    loadSettings();
+    bindStick('leftStick', 'leftKnob', true);
+    bindStick('rightStick', 'rightKnob', false);
+    const landscapeQuery = matchMedia('(orientation: landscape)');
+    if (landscapeQuery.addEventListener) {
+      landscapeQuery.addEventListener('change', event => handleOrientationChange(event.matches));
+    } else {
+      landscapeQuery.addListener(event => handleOrientationChange(event.matches));
+    }
+    landscapeHint.textContent = landscapeQuery.matches
+      ? '已进入横屏控制'
+      : '请将手机横放，页面会自动切换';
+    document.getElementById('orientationToggle').textContent =
+      landscapeQuery.matches ? '竖屏' : '横屏';
+    setInterval(() => {
+      const now = performance.now();
+    }, 500);
+    setInterval(() => {
+    }, 500);
+  </script>
+</body>
+</html>
