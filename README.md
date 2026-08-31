@@ -2,7 +2,7 @@
 
 > 一款基于 ESP32-S3 开发的开源微型无人机，支持手机 App、手机浏览器和遥控器控制，并提供 Wi-Fi 图传与 RID 广播功能。
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/tiny-drone-overview.jpg" alt="Tiny-Drone 探秘者开源无人机" width="600">
 </p>
 
@@ -228,3 +228,6 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
 ## 开源许可
 
 本项目遵循 [GPL-3.0 License](LICENSE)。
+装是否正确
+
+<img src="https://image.lceda.cn/oshwhub/pullImage/60faf9d4cbc24b0dbb53aabc161881e8.png" width="400"  />
