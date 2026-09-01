@@ -84,6 +84,7 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
 </p>
 
 ## 软件与控制端
+上电后手机扫描连接wifi:"TINY-DRONE_XXXXXXXXXXXX"，密码为"87654321"
 
 - 无人机固件：[Tiny-Drone](https://github.com/jonny-lekaiwu/Tiny-Drone)
 - Android App：[ESP-Drone-Android](https://github.com/jonny-lekaiwu/ESP-Drone-Android) 
