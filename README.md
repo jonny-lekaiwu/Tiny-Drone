@@ -21,7 +21,8 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
 
 ## 视频演示
 
-[B 站视频：功能演示及介绍](https://www.bilibili.com/video/BV1T7th6gEEx/)
+[室内飞行](https://www.bilibili.com/video/BV1T7th6gEEx/)
+[室内飞行](https://www.bilibili.com/video/BV1wDtu6MEMh/)
 
 ## 注意事项
 
