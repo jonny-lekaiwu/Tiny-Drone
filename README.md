@@ -86,18 +86,22 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
 ## 软件与控制端
 
 - 无人机固件：[Tiny-Drone](https://github.com/jonny-lekaiwu/Tiny-Drone)
-- Android App：[ESP-Drone-Android](https://github.com/jonny-lekaiwu/ESP-Drone-Android)
-- Android App 下载：[v0.7.3 Release](https://github.com/jonny-lekaiwu/ESP-Drone-Android/releases/tag/v0.7.3)
+- Android App：[ESP-Drone-Android](https://github.com/jonny-lekaiwu/ESP-Drone-Android) 
+
+- 扫码下载安卓app
+  <p align="left">
+    <img src="assets/android_app.png" alt="Android App">
+  </p>
 
 苹果手机可通过浏览器访问 `192.168.43.42` 进行控制。iOS App 正在规划中，将根据实际需求安排开发。
 
 <p align="left">
-  <img src="assets/TinyDrone/android-app-control.jpg" alt="Android App 控制界面" width="600">
+  <img src="assets/TinyDrone/android-app-control.jpg" alt="Android App 控制界面" width="400">
 </p>
 <p align="left"><em>Android App 控制界面</em></p>
 
 <p align="left">
-  <img src="assets/TinyDrone/mobile-browser-control.jpg" alt="手机浏览器控制界面" width="600">
+  <img src="assets/TinyDrone/mobile-browser-control.jpg" alt="手机浏览器控制界面" width="400">
 </p>
 <p align="left"><em>手机浏览器控制界面</em></p>
 
