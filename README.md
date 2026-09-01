@@ -8,7 +8,7 @@
 
 ## 项目简介
 
-Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人机玩具。项目主要代码源自 [ESP-Drone](https://github.com/espressif/esp-drone) 开源工程，并遵循 GPL-3.0 许可证。
+Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人机玩具。项目主要代码源自 [ESP-Drone](https://github.com/espressif/esp-drone) 开源工程，并遵循  [GPL-3.0 License](LICENSE)。 
 
 主要功能：
 
@@ -242,14 +242,8 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
 
 检查桨叶的型号、方向和安装位置是否正确。 
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/propeller-installation.png" alt="Tiny-Drone 桨叶正确安装方式" width="600">
 </p>
 
-</details>
-
-## 开源许可
-
-本项目遵循 [GPL-3.0 License](LICENSE)。 
-
-
+</details> 
