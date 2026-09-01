@@ -39,13 +39,13 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
 
 使用锂电池供电，经升压芯片升压后，再通过 LDO 为传感器和主控供电。
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/power-supply.png" alt="Tiny-Drone 电源电路" width="600">
 </p>
 
 ### 状态指示灯及电源指示灯
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/status-and-power-led.png" alt="状态指示灯及电源指示灯电路" width="600">
 </p>
 
@@ -53,25 +53,25 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
 
 使用 ZY-MPU6050 模块，便于手工焊接。
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/zy-mpu6050-sensor.png" alt="ZY-MPU6050 传感器电路" width="600">
 </p>
 
 ### 主控及 ADC 电量采集
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/esp32s3-and-adc.png" alt="ESP32-S3 主控及 ADC 电量采集电路" width="600">
 </p>
 
 ### 电机驱动
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/motor-driver.png" alt="电机驱动电路" width="600">
 </p>
 
 ### 摄像头
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/camera-circuit.png" alt="摄像头电路" width="600">
 </p>
 
@@ -79,7 +79,7 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
 
 支持 SPL06-001 气压计和 VL53L1X 定高模块，并预留定点悬停模块接口。
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/expansion-modules.png" alt="扩展模块接口电路" width="600">
 </p>
 
@@ -91,31 +91,31 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
 
 苹果手机可通过浏览器访问 `192.168.43.42` 进行控制。iOS App 正在规划中，将根据实际需求安排开发。
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/android-app-control.jpg" alt="Android App 控制界面" width="600">
 </p>
-<p align="center"><em>Android App 控制界面</em></p>
+<p align="left"><em>Android App 控制界面</em></p>
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/mobile-browser-control.jpg" alt="手机浏览器控制界面" width="600">
 </p>
-<p align="center"><em>手机浏览器控制界面</em></p>
+<p align="left"><em>手机浏览器控制界面</em></p>
 
 ## 实物展示
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/tiny-drone-photo-1.jpg" alt="Tiny-Drone 实物图一" width="600">
 </p>
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/tiny-drone-photo-2.jpg" alt="Tiny-Drone 实物图二" width="600">
 </p>
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/tiny-drone-photo-3.jpg" alt="Tiny-Drone 实物图三" width="600">
 </p>
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/tiny-drone-photo-4.jpg" alt="Tiny-Drone 实物图四" width="600">
 </p>
 
@@ -125,7 +125,7 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
 
 ### 硬件组装
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/hardware-assembly.png" alt="Tiny-Drone 硬件组装示意图" width="600">
 </p>
 
@@ -133,7 +133,7 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
 
    按照 BOM 清单购买对应元器件，也可以直接购买[物料包](https://item.taobao.com/item.htm?ft=t&id=1080586148318)。建议选择质量较好的元器件，以免影响飞行效果；ZY-MPU6050 和 OV2640 最好购买经过卖家测试的产品。
 
-   <p align="center">
+   <p align="left">
      <img src="assets/TinyDrone/components-and-materials.jpg" alt="Tiny-Drone 元器件与物料" width="600">
    </p>
 
@@ -147,9 +147,32 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
    - 焊接 FPC 座时，建议使用刀型 USB 电烙铁；出现连锡时，可使用助焊剂和松香拖开焊锡。
    - 焊接 TYPE-C 16Pin 接口时，可使用中温锡膏搭配小体积刀型电烙铁。
 
-### 烧录固件
+### 编译及烧录
 
-请根据目标硬件选择对应配置，并按照项目构建脚本完成编译与烧录。
+* 基于esp-idf-v5.5.3编译
+    - 下载windows版本 [esp-idf](https://dl.espressif.cn/dl/esp-idf/?idf=5.5.3)
+
+  <img src="assets/download_idf.png" width="360"/> 
+
+  ~~~
+  ./build.bat tiny-drone
+  idf.py flash monitor -p COMX
+  ~~~
+
+### 一键烧录
+* 打开在线烧录[网站](https://espressif.github.io/esptool-js/)
+
+* 打开连接识别到的COM并打开
+
+  <img src="assets/connect.png" width="360"/> 
+
+* 选择要烧录的文件，设置地址为0
+
+  <img src="assets/choose_file.png" width="360"/> 
+
+* 点击烧录，等待烧录完成
+
+  <img src="assets/program.png" width="360"/> 
 
 ### 调整电机位置和桨叶安装深度
 
@@ -157,7 +180,7 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
 
 电机与底座之间应保留适当间隙，以便在发生碰撞时保护电机。
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/motor-position.jpg" alt="电机与底座的正确间隙" width="600">
 </p>
 
@@ -165,7 +188,7 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
 
 电机应与水平面保持垂直，以避免航向角出现明显偏移。
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/motor-angle.jpg" alt="电机安装角度" width="600">
 </p>
 
@@ -173,7 +196,7 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
 
 桨叶与电机之间应保留约 **2 mm** 的间距。
 
-<p align="center">
+<p align="left">
   <img src="assets/TinyDrone/propeller-clearance.jpg" alt="桨叶与电机之间保留约 2 mm 间距" width="600">
 </p>
 
@@ -217,7 +240,7 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
 <details>
 <summary><strong>桨叶转动，但无人机无法起飞</strong></summary>
 
-检查桨叶的型号、方向和安装位置是否正确。
+检查桨叶的型号、方向和安装位置是否正确。 
 
 <p align="center">
   <img src="assets/TinyDrone/propeller-installation.png" alt="Tiny-Drone 桨叶正确安装方式" width="600">
@@ -227,7 +250,6 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
 
 ## 开源许可
 
-本项目遵循 [GPL-3.0 License](LICENSE)。
-装是否正确
+本项目遵循 [GPL-3.0 License](LICENSE)。 
 
-<img src="https://image.lceda.cn/oshwhub/pullImage/60faf9d4cbc24b0dbb53aabc161881e8.png" width="400"  />
+
