@@ -35,6 +35,7 @@
 #include "num.h"
 #include "position_controller.h"
 #include "position_estimator.h"
+#include "crtp_commander.h"
 #define DEBUG_MODULE "POSITION_CONTROLLER"
 #include "debug_cf.h"
 
@@ -189,6 +190,16 @@ static struct this_s this = {
 };
 #endif
 
+/* Test a lower feed-forward value only for barometer altitude hold. Manual
+ * STABILIZE and the well-performing POS_HOLD retain the calibrated default. */
+#define ALTHOLD_THRUST_BASE 32767U
+
+static uint16_t getActiveThrustBase(void)
+{
+  return get_flight_mode() == ALTHOLD_MODE ?
+      ALTHOLD_THRUST_BASE : this.thrustBase;
+}
+
 void positionControllerInit()
 {
   pidInit(&this.pidX.pid, this.pidX.setpoint, this.pidX.init.kp, this.pidX.init.ki, this.pidX.init.kd,
@@ -314,10 +325,11 @@ void positionController(float* thrust, attitude_t *attitude, setpoint_t *setpoin
     verticalTakeoverInitialVelocity = 0.0f;
   }
 
-  if (verticalLandingProtection && *thrust > this.thrustBase) {
+  const uint16_t activeThrustBase = getActiveThrustBase();
+  if (verticalLandingProtection && *thrust > activeThrustBase) {
     /* Landing must never command more than nominal hover thrust. Normal
      * negative-velocity control remains active below this safety ceiling. */
-    *thrust = this.thrustBase;
+    *thrust = activeThrustBase;
   }
 
 }
@@ -346,7 +358,7 @@ void velocityController(float* thrust, attitude_t *attitude, setpoint_t *setpoin
   float thrustRaw = runPid(state->velocity.z, &this.pidVZ,
                            setpoint->velocity.z, DT);
   // Scale the thrust and add feed forward term
-  *thrust = thrustRaw*thrustScale + this.thrustBase;
+  *thrust = thrustRaw*thrustScale + getActiveThrustBase();
   // Check for minimum thrust
   if (*thrust < this.thrustMin) {
     *thrust = this.thrustMin;

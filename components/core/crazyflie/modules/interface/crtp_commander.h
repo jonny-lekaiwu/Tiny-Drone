@@ -43,6 +43,7 @@ void crtpCommanderRpytDecodeSetpoint(setpoint_t *setpoint, CRTPPacket *pk);
 void crtpCommanderGenericDecodeSetpoint(setpoint_t *setpoint, CRTPPacket *pk);
 void crtpCommanderRpytApplyYawMode(setpoint_t *setpoint, const state_t *state);
 void setCommandermode(FlightMode mode);
+uint8_t get_flight_mode(void);
 bool crtpCommanderWebSetpoint(float roll,
                               float pitch,
                               float yaw,
