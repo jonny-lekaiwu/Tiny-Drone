@@ -1755,9 +1755,9 @@ void wifiInit(void)
     ESP_ERROR_CHECK(esp_wifi_start());
     esp_wifi_set_channel(WIFI_CH, WIFI_SECOND_CHAN_NONE);   
     esp_netif_ip_info_t ip_info = {
-        .ip.addr = ipaddr_addr("192.168.43.42"),
+        .ip.addr = ipaddr_addr("192.168.26.28"),
         .netmask.addr = ipaddr_addr("255.255.255.0"),
-        .gw.addr      = ipaddr_addr("192.168.43.42"),
+        .gw.addr      = ipaddr_addr("192.168.26.28"),
     };
     ESP_ERROR_CHECK(esp_netif_dhcps_stop(ap_netif));
     ESP_ERROR_CHECK(esp_netif_set_ip_info(ap_netif, &ip_info));

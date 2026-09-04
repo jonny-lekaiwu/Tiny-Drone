@@ -190,9 +190,9 @@ static struct this_s this = {
 };
 #endif
 
-/* Test a lower feed-forward value only for barometer altitude hold. Manual
- * STABILIZE and the well-performing POS_HOLD retain the calibrated default. */
-#define ALTHOLD_THRUST_BASE 32767U
+/* The 36k feed-forward value is isolated to barometer ALTHOLD. Manual
+ * thrust is direct and POS_HOLD retains its calibrated 42k base. */
+#define ALTHOLD_THRUST_BASE 36000U
 
 static uint16_t getActiveThrustBase(void)
 {

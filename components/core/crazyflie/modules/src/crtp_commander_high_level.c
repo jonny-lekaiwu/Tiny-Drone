@@ -108,7 +108,6 @@ static StaticSemaphore_t lockTrajBuffer;
 // safe default settings for takeoff and landing velocity
 static float defaultTakeoffVelocity = 0.5f;
 static float defaultLandingVelocity = 0.5f;
-static volatile bool takeoffRequestPending = false;
 
 // Trajectory memory handling from the memory module
 static uint32_t handleMemGetSize(void) { return crtpCommanderHighLevelTrajectoryMemSize(); }
@@ -412,7 +411,6 @@ int takeoff(const struct data_takeoff* data)
 {
   int result = 0;
   if (isInGroup(data->groupMask)) {
-    takeoffRequestPending = true;
     xSemaphoreTake(lockTraj, portMAX_DELAY);
     DEBUG_PRINTD("take off !!!!!");
     float t = usecTimestamp() / 1e6;
@@ -426,7 +424,6 @@ int takeoff2(const struct data_takeoff_2* data)
 {
   int result = 0;
   if (isInGroup(data->groupMask)) {
-    takeoffRequestPending = true;
     xSemaphoreTake(lockTraj, portMAX_DELAY);
     float t = usecTimestamp() / 1e6;
 
@@ -445,7 +442,6 @@ int takeoff_with_velocity(const struct data_takeoff_with_velocity* data)
 {
   int result = 0;
   if (isInGroup(data->groupMask)) {
-    takeoffRequestPending = true;
     xSemaphoreTake(lockTraj, portMAX_DELAY);
     float t = usecTimestamp() / 1e6;
 
@@ -832,16 +828,6 @@ bool crtpCommanderHighLevelIsLanding(void)
     xSemaphoreGive(lockTraj);
 
     return is_landing;
-}
-
-bool crtpCommanderHighLevelConsumeTakeoffRequest(void)
-{
-    if (!takeoffRequestPending) {
-        return false;
-    }
-
-    takeoffRequestPending = false;
-    return true;
 }
 
 PARAM_GROUP_START(hlCommander)

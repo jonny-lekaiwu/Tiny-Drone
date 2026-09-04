@@ -231,7 +231,4 @@ bool crtpCommanderHighLevelIsTrajectoryFinished();
 
 bool crtpCommanderHighLevelIsLanding(void);
 
-/** Consume one takeoff command received on the high-level CRTP port. */
-bool crtpCommanderHighLevelConsumeTakeoffRequest(void);
-
 #endif /* CRTP_COMMANDER_HIGH_LEVEL_H_ */
