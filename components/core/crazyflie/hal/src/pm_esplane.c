@@ -43,6 +43,7 @@
 #include "crtp.h"
 #include "sound.h"
 #include "stm32_legacy.h"
+#include "../../../../remote_id/include/remote_id.h"
 //#include "deck.h"
 #define DEBUG_MODULE "PM"
 #include "debug_cf.h"
@@ -401,7 +402,8 @@ void pmTask(void *param)
     memcpy(&packet.data[5], &relativeHeightM, sizeof(relativeHeightM));
     packet.data[9] = flightMode;
     packet.data[10] = altitudeHolding ? 1U : 0U;
-    packet.size = 11;
+    packet.data[11] = remoteIdGetOperationState();
+    packet.size = 12;
     const int telemetryQueued = crtpSendPacket(&packet);
 
     #if 0

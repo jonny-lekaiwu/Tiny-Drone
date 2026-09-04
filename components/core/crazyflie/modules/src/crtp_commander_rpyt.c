@@ -58,9 +58,9 @@
 #define ALT_HOLD_THRUST_DEADZONE  5000U
 #define ALT_HOLD_MAX_RISE_SPEED   0.30f
 #define ALT_HOLD_MAX_FALL_SPEED   0.10f
-#define BAROMETER_MAX_RISE_SPEED     0.50f
-#define BAROMETER_MAX_FALL_SPEED     0.10f
-#define ALT_HOLD_LANDING_SPEED    0.12f
+#define BAROMETER_MAX_RISE_SPEED     0.30f
+#define BAROMETER_MAX_FALL_SPEED     0.05f
+#define ALT_HOLD_LANDING_SPEED    0.04f
 #define ALT_HOLD_TAKEOFF_SPEED    0.12f
 #define ALT_HOLD_LOW_SPEED        0.10f
 #define ALT_HOLD_LOW_HEIGHT_MM    250.0f
@@ -78,8 +78,13 @@
 #define ALT_HOLD_ONE_KEY_TAKEOFF_MS     2500U
 #define ALT_HOLD_LANDING_HEIGHT_MM      600.0f
 #define ALT_HOLD_LANDING_THRUST_MAX     300U
+#define ALT_HOLD_NEGATIVE_STOP_HEIGHT_MM (-150.0f)
 #define ALT_HOLD_LANDING_CONFIRM_MS      600U
 #define ALT_HOLD_LANDING_SETTLE_MS      3000U
+#define ALT_HOLD_RESET_MIN_WAIT_MS       500U
+#define ALT_HOLD_RESET_STABLE_MS         300U
+#define ALT_HOLD_RESET_MAX_WAIT_MS       1200U
+#define ALT_HOLD_RESET_STABLE_RANGE_M    0.10f
 #define MANUAL_LOW_BATTERY_LANDING_MS   6000U
 
 /**
@@ -136,6 +141,11 @@ static bool landing = false;
 static TickType_t altHoldTakeoffStartTick = 0;
 static TickType_t altHoldLandingConditionStartTick = 0;
 static TickType_t altHoldLandingCountdownStartTick = 0;
+static bool altHoldRelativeResetPending = false;
+static TickType_t altHoldRelativeResetStartTick = 0;
+static TickType_t altHoldRelativeStableStartTick = 0;
+static float altHoldRelativeStableMin = 0.0f;
+static float altHoldRelativeStableMax = 0.0f;
 static volatile bool lowBatteryAlarmRequested = false;
 static volatile bool tumbleAlarmRequested = false;
 static bool tumbleAlarmIssuedForStick = false;
@@ -204,7 +214,11 @@ void setCommandermode(FlightMode mode){
   altHoldHoverActive = false;
   altHoldLandingConditionStartTick = 0;
   altHoldLandingCountdownStartTick = 0;
+  altHoldRelativeResetPending = false;
+  altHoldRelativeResetStartTick = 0;
+  altHoldRelativeStableStartTick = 0;
   positionControllerSetVerticalLandingProtection(false);
+  positionControllerSetVerticalDescentThrustLimit(false);
 }
 
 uint8_t get_flight_mode(void)
@@ -485,22 +499,80 @@ void crtpCommanderRpytDecodeSetpoint(setpoint_t *setpoint, CRTPPacket *pk)
     float heightMm = rangeGet(rangeDown);
     bool landingHeightValid = !barometerPrimary &&
         isfinite(heightMm) && heightMm > 0.0f;
+    bool negativeBaroStopHeight = false;
+    bool baroRelativeValid = false;
+    float baroRelativeHeight = 0.0f;
     if (barometerPrimary) {
-      float relativeHeight = 0.0f;
-      if (positionEstimatorAltitudeGetFilteredBaroRelative(&relativeHeight)) {
-        heightMm = relativeHeight * 1000.0f;
-        landingHeightValid = isfinite(heightMm) && heightMm > -500.0f;
+      if (positionEstimatorAltitudeGetFilteredBaroRelative(&baroRelativeHeight)) {
+        baroRelativeValid = isfinite(baroRelativeHeight);
+        heightMm = baroRelativeHeight * 1000.0f;
+        if (isfinite(heightMm)) {
+          landingHeightValid = heightMm > -500.0f;
+          negativeBaroStopHeight =
+              heightMm <= ALT_HOLD_NEGATIVE_STOP_HEIGHT_MM;
+        }
+      }
+    }
+
+    /* Reset the barometer ground reference only after landing has stopped the
+     * motors and the pressure has had time to settle. This state machine is
+     * non-blocking: an explicit new ascent command cancels it immediately, so
+     * the pilot never has to wait for the reset before taking off again. */
+    if (altHoldRelativeResetPending) {
+      const bool newTakeoffIntent = altHoldTakeoffActive || rawThrust > thrustHigh;
+      if (!barometerPrimary || newTakeoffIntent) {
+        altHoldRelativeResetPending = false;
+        altHoldRelativeResetStartTick = 0;
+        altHoldRelativeStableStartTick = 0;
+      } else if (baroRelativeValid) {
+        const uint32_t resetElapsedMs =
+            T2M(now - altHoldRelativeResetStartTick);
+
+        if (resetElapsedMs >= ALT_HOLD_RESET_MIN_WAIT_MS) {
+          if (altHoldRelativeStableStartTick == 0) {
+            altHoldRelativeStableStartTick = now;
+            altHoldRelativeStableMin = baroRelativeHeight;
+            altHoldRelativeStableMax = baroRelativeHeight;
+          } else {
+            altHoldRelativeStableMin =
+                fminf(altHoldRelativeStableMin, baroRelativeHeight);
+            altHoldRelativeStableMax =
+                fmaxf(altHoldRelativeStableMax, baroRelativeHeight);
+
+            if (altHoldRelativeStableMax - altHoldRelativeStableMin >
+                ALT_HOLD_RESET_STABLE_RANGE_M) {
+              altHoldRelativeStableStartTick = now;
+              altHoldRelativeStableMin = baroRelativeHeight;
+              altHoldRelativeStableMax = baroRelativeHeight;
+            }
+          }
+
+          const bool pressureStable = altHoldRelativeStableStartTick != 0 &&
+              T2M(now - altHoldRelativeStableStartTick) >=
+                  ALT_HOLD_RESET_STABLE_MS;
+          const bool maximumWaitExpired =
+              resetElapsedMs >= ALT_HOLD_RESET_MAX_WAIT_MS;
+          if (pressureStable || maximumWaitExpired) {
+            positionEstimatorAltitudeRequestRelativeReset();
+            altHoldRelativeResetPending = false;
+            altHoldRelativeResetStartTick = 0;
+            altHoldRelativeStableStartTick = 0;
+            DEBUG_PRINTI("Ground height reference reset after landing\n");
+          }
+        }
       }
     }
 
     const bool belowLandingTriggerHeight = landingHeightValid &&
         heightMm <= ALT_HOLD_LANDING_HEIGHT_MM;
-    /* Manual landing is latched only after both low throttle and a plausible
-     * sub-0.6 m height persist for 600 ms. Before that, ordinary
-     * altitude control remains active and a single noisy sample is harmless. */
+    bool stopImmediatelyAfterLandingConfirm = false;
+    /* Manual landing requires explicit low throttle for 600 ms. A plausible
+     * sub-0.6 m height starts the normal settling descent. A debounced barometer
+     * reading below -0.15 m is treated as near-ground downwash/reference error
+     * and stops immediately instead of allowing a return to height hold. */
     const bool manualLandingCondition = altHoldTakeoffActive && !landing &&
         rawThrust <= ALT_HOLD_LANDING_THRUST_MAX &&
-        belowLandingTriggerHeight;
+        (belowLandingTriggerHeight || negativeBaroStopHeight);
     if (manualLandingCondition) {
       if (altHoldLandingConditionStartTick == 0) {
         altHoldLandingConditionStartTick = now;
@@ -509,6 +581,7 @@ void crtpCommanderRpytDecodeSetpoint(setpoint_t *setpoint, CRTPPacket *pk)
         landing = true;
         altHoldLandingCountdownStartTick = now;
         altHoldLandingConditionStartTick = 0;
+        stopImmediatelyAfterLandingConfirm = negativeBaroStopHeight;
         DEBUG_PRINTI("Manual landing latched at %ld mm\n", (long)heightMm);
       }
     } else if (!landing) {
@@ -534,6 +607,15 @@ void crtpCommanderRpytDecodeSetpoint(setpoint_t *setpoint, CRTPPacket *pk)
      * prevent the controller from commanding above nominal hover thrust.
      * This removes the near-ground upward kick while retaining controlled
      * braking and manual roll/pitch/yaw authority. */
+    /* Full-low throttle in barometer-only ALTHOLD is an explicit descent
+     * request. Preserve PID state, but allow only a small positive braking
+     * correction while the pilot is trying to land. Keep this strictly out of
+     * manual and POS_HOLD modes. */
+    const bool lowThrottleDescentProtection =
+        flight_mode == ALTHOLD_MODE && altHoldTakeoffActive &&
+        rawThrust <= ALT_HOLD_LANDING_THRUST_MAX;
+    positionControllerSetVerticalDescentThrustLimit(
+        lowThrottleDescentProtection && !landing);
     positionControllerSetVerticalLandingProtection(landing);
 
     // Automatic landing owns only the vertical axis. Manual attitude control
@@ -555,7 +637,7 @@ void crtpCommanderRpytDecodeSetpoint(setpoint_t *setpoint, CRTPPacket *pk)
      * started the countdown. Barometer noise near the ground must not stop
      * the motors early; the latched landing always gets its full settle time. */
     const bool landingComplete = altHoldTakeoffActive && landing &&
-        landingCountdownExpired;
+        (landingCountdownExpired || stopImmediatelyAfterLandingConfirm);
 
     // Automatic and manual landing share the same motor-stop cleanup.
     if (landingComplete) {
@@ -569,9 +651,14 @@ void crtpCommanderRpytDecodeSetpoint(setpoint_t *setpoint, CRTPPacket *pk)
       landing = false;
       thrustLocked = true;
       positionControllerSetVerticalLandingProtection(false);
+      positionControllerSetVerticalDescentThrustLimit(false);
 
       crtpCommanderHighLevelStop();
-      positionEstimatorAltitudeRequestRelativeReset();
+      if (barometerPrimary) {
+        altHoldRelativeResetPending = true;
+        altHoldRelativeResetStartTick = now;
+        altHoldRelativeStableStartTick = 0;
+      }
       memcpy(setpoint, &nullSetpoint, sizeof(*setpoint));
       return;
     }
@@ -635,6 +722,7 @@ void crtpCommanderRpytDecodeSetpoint(setpoint_t *setpoint, CRTPPacket *pk)
     altHoldLandingCountdownStartTick = 0;
     altHoldHoverActive = false;
     positionControllerSetVerticalLandingProtection(false);
+    positionControllerSetVerticalDescentThrustLimit(false);
     setpoint->mode.z = modeDisable;
   }
 

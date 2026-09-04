@@ -20,6 +20,49 @@
 
 static const char *TAG = "remote_id";
 
+#define RID_FLIGHT_MOTOR_SUM_THRESHOLD 1000
+#define RID_GROUND_CONFIRM_SAMPLES 2
+#define RID_GYRO_STATIC_DPS 5.0f
+
+static uint8_t update_operation_state(void)
+{
+    static bool airborne;
+    static uint8_t ground_samples;
+    float thrust = 0.0f;
+    Axis3f gyro = {0};
+    int motor_sum = 0;
+    for (unsigned i = 0; i < 4; ++i) motor_sum += motorsGetRatio(i);
+
+    bool snapshot_valid = stabilizerGetFlightStatusSnapshot(&thrust, &gyro);
+    bool attitude_static = snapshot_valid &&
+                           fabsf(gyro.x) <= RID_GYRO_STATIC_DPS &&
+                           fabsf(gyro.y) <= RID_GYRO_STATIC_DPS &&
+                           fabsf(gyro.z) <= RID_GYRO_STATIC_DPS;
+    bool zero_throttle = thrust <= 0.0f && motor_sum <= RID_FLIGHT_MOTOR_SUM_THRESHOLD;
+
+    if (!systemIsArmed()) {
+        airborne = false;
+        ground_samples = 0;
+    } else if (!zero_throttle && motor_sum > RID_FLIGHT_MOTOR_SUM_THRESHOLD) {
+        airborne = true;
+        ground_samples = 0;
+    } else if (airborne && zero_throttle && attitude_static) {
+        if (++ground_samples >= RID_GROUND_CONFIRM_SAMPLES) {
+            airborne = false;
+            ground_samples = 0;
+        }
+    } else {
+        ground_samples = 0;
+    }
+    return airborne ? 0x02 : 0x01;
+}
+
+uint8_t remoteIdGetOperationState(void)
+{
+    /* Operation-state telemetry is independent of RID beacon broadcasting. */
+    return update_operation_state();
+}
+
 #if CONFIG_REMOTE_ID_ENABLE
 
 #define RID_FRAME_MAX 160
@@ -27,9 +70,6 @@ static const char *TAG = "remote_id";
 #define GB46750_PACKET_LEN (3 + 3 + GB46750_CONTENT_LEN)
 #define RID_UNKNOWN_POSITION ((int32_t)-1)
 #define RID_UNKNOWN_U16 0xffffU
-#define RID_FLIGHT_MOTOR_SUM_THRESHOLD 1000
-#define RID_GROUND_CONFIRM_SAMPLES 2
-#define RID_GYRO_STATIC_DPS 5.0f
 #define RID_STATION_UPDATE_TYPE 0x52
 #define RID_STATION_UPDATE_VERSION 1
 #define RID_STATION_POSITION_VALID 0x01
@@ -65,39 +105,6 @@ static void put_le32(uint8_t *p, int32_t v)
     p[1] = (uint8_t)(u >> 8);
     p[2] = (uint8_t)(u >> 16);
     p[3] = (uint8_t)(u >> 24);
-}
-
-static uint8_t operation_state(void)
-{
-    static bool airborne;
-    static uint8_t ground_samples;
-    float thrust = 0.0f;
-    Axis3f gyro = {0};
-    int motor_sum = 0;
-    for (unsigned i = 0; i < 4; ++i) motor_sum += motorsGetRatio(i);
-
-    bool snapshot_valid = stabilizerGetFlightStatusSnapshot(&thrust, &gyro);
-    bool attitude_static = snapshot_valid &&
-                           fabsf(gyro.x) <= RID_GYRO_STATIC_DPS &&
-                           fabsf(gyro.y) <= RID_GYRO_STATIC_DPS &&
-                           fabsf(gyro.z) <= RID_GYRO_STATIC_DPS;
-    bool zero_throttle = thrust <= 0.0f && motor_sum <= RID_FLIGHT_MOTOR_SUM_THRESHOLD;
-
-    if (!systemIsArmed()) {
-        airborne = false;
-        ground_samples = 0;
-    } else if (!zero_throttle && motor_sum > RID_FLIGHT_MOTOR_SUM_THRESHOLD) {
-        airborne = true;
-        ground_samples = 0;
-    } else if (airborne && zero_throttle && attitude_static) {
-        if (++ground_samples >= RID_GROUND_CONFIRM_SAMPLES) {
-            airborne = false;
-            ground_samples = 0;
-        }
-    } else {
-        ground_samples = 0;
-    }
-    return airborne ? 0x02 : 0x01;
 }
 
 static void put_le48(uint8_t *p, uint64_t v)
@@ -196,7 +203,7 @@ static uint16_t build_gb46750_packet(uint8_t *packet)
     put_le16(packet + p, RID_UNKNOWN_U16); p += 2; /* 009 track unknown */
     put_le16(packet + p, RID_UNKNOWN_U16); p += 2; /* 010 ground speed unknown */
     put_le16(packet + p, 0x0000); p += 2;          /* 013 geometric altitude unknown */
-    packet[p++] = operation_state();               /* 015 ground / airborne */
+    packet[p++] = remoteIdGetOperationState();     /* 015 ground / airborne */
     packet[p++] = 0x00;                           /* 016 WGS-84 */
     packet[p++] = 0x00;                           /* 017 horizontal accuracy unknown */
     packet[p++] = 0x00;                           /* 018 vertical accuracy unknown */

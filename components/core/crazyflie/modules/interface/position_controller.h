@@ -34,6 +34,7 @@ void positionControllerInit();
 void positionControllerResetAllPID();
 void positionControllerRequestVerticalReset(uint16_t takeoverThrust);
 void positionControllerSetVerticalLandingProtection(bool enabled);
+void positionControllerSetVerticalDescentThrustLimit(bool enabled);
 void positionController(float* thrust, attitude_t *attitude, setpoint_t *setpoint,
                                                              const state_t *state);
 void velocityController(float* thrust, attitude_t *attitude, setpoint_t *setpoint,

@@ -85,6 +85,7 @@ static bool baroHeightHoldActive = false;
 static float baroHeightSetpoint = 0.0f;
 static volatile bool verticalResetRequested = false;
 static volatile bool verticalLandingProtection = false;
+static volatile bool verticalDescentThrustLimit = false;
 static bool verticalLandingProtectionApplied = false;
 static uint16_t verticalTakeoverBlendSteps = 0;
 static float verticalTakeoverInitialVelocity = 0.0f;
@@ -102,6 +103,11 @@ void positionControllerRequestVerticalReset(uint16_t takeoverThrust)
 void positionControllerSetVerticalLandingProtection(bool enabled)
 {
   verticalLandingProtection = enabled;
+}
+
+void positionControllerSetVerticalDescentThrustLimit(bool enabled)
+{
+  verticalDescentThrustLimit = enabled;
 }
 
 #define DT (float)(1.0f/POSITION_RATE)
@@ -176,7 +182,7 @@ static struct this_s this = {
 //thrustBase should just lift the drone
 #ifdef CONFIG_MOTOR_BRUSHED_715
  // #ifdef CONFIG_TARGET_TINY_DRONE_V1_0
-  .thrustBase = 42000,
+  .thrustBase = 40000,
   .thrustMin  = 8000,
   // #else
   // .thrustBase = 36000,
@@ -190,14 +196,16 @@ static struct this_s this = {
 };
 #endif
 
-/* The 36k feed-forward value is isolated to barometer ALTHOLD. Manual
- * thrust is direct and POS_HOLD retains its calibrated 42k base. */
-#define ALTHOLD_THRUST_BASE 36000U
+/* Manual thrust remains direct. Closed-loop altitude modes share the
+ * calibrated controller base, while pure ALTHOLD receives a small additional
+ * feed-forward term only when a downward velocity is requested. */
+#define ALTHOLD_DESCENT_FEED_FORWARD 680U//2600
+#define ALTHOLD_DESCENT_MAX_POSITIVE_COMPENSATION 2600U
+#define ALTHOLD_LANDING_THRUST_MARGIN 2000U
 
 static uint16_t getActiveThrustBase(void)
 {
-  return get_flight_mode() == ALTHOLD_MODE ?
-      ALTHOLD_THRUST_BASE : this.thrustBase;
+  return this.thrustBase;
 }
 
 void positionControllerInit()
@@ -326,10 +334,28 @@ void positionController(float* thrust, attitude_t *attitude, setpoint_t *setpoin
   }
 
   const uint16_t activeThrustBase = getActiveThrustBase();
-  if (verticalLandingProtection && *thrust > activeThrustBase) {
-    /* Landing must never command more than nominal hover thrust. Normal
-     * negative-velocity control remains active below this safety ceiling. */
-    *thrust = activeThrustBase;
+  if (verticalDescentThrustLimit) {
+    const uint32_t descentThrustLimit =
+        (uint32_t)activeThrustBase + ALTHOLD_DESCENT_MAX_POSITIVE_COMPENSATION;
+    if (*thrust > descentThrustLimit) {
+      /* Preserve PID state and allow only a small braking correction while
+       * full-low throttle expresses an explicit descent intent. */
+      *thrust = descentThrustLimit;
+    }
+  }
+  if (verticalLandingProtection) {
+    uint16_t landingThrustCeiling = activeThrustBase;
+    if (get_flight_mode() == ALTHOLD_MODE) {
+      landingThrustCeiling = activeThrustBase > ALTHOLD_LANDING_THRUST_MARGIN ?
+          activeThrustBase - ALTHOLD_LANDING_THRUST_MARGIN : 0U;
+    }
+    if (*thrust > landingThrustCeiling) {
+      /* Once landing is latched, barometer height may jump far below zero due
+       * to ground effect. Never let that error produce climb thrust. Pure
+       * barometer ALTHOLD gets a ceiling below its nominal feed-forward value;
+       * POS_HOLD retains its previous nominal-base ceiling. */
+      *thrust = landingThrustCeiling;
+    }
   }
 
 }
@@ -355,10 +381,40 @@ void velocityController(float* thrust, attitude_t *attitude, setpoint_t *setpoin
   attitude->pitch = constrain(attitude->pitch, -rpLimit, rpLimit);
 
   // Thrust
+  /* In pure barometer ALTHOLD, a sustained descent command must not wind the
+   * vertical-speed integrator far negative. Keep the integral correction that
+   * was already needed for hover, but freeze it while commanding descent or
+   * while the landing safety ceiling is active. P control remains active, so
+   * descent response is preserved without leaving a delayed thrust deficit
+   * when the pilot returns to hold or climb. Manual and POS_HOLD are excluded. */
+  const bool freezeAltHoldDescentIntegral =
+      get_flight_mode() == ALTHOLD_MODE &&
+      (setpoint->velocity.z < 0.0f || verticalDescentThrustLimit ||
+       verticalLandingProtection);
+  const float savedVerticalIntegral = this.pidVZ.pid.integ;
   float thrustRaw = runPid(state->velocity.z, &this.pidVZ,
                            setpoint->velocity.z, DT);
-  // Scale the thrust and add feed forward term
-  *thrust = thrustRaw*thrustScale + getActiveThrustBase();
+  if (freezeAltHoldDescentIntegral) {
+    this.pidVZ.pid.integ = savedVerticalIntegral;
+    this.pidVZ.pid.outI = this.pidVZ.pid.ki * savedVerticalIntegral;
+    thrustRaw = this.pidVZ.pid.outP + this.pidVZ.pid.outI +
+                this.pidVZ.pid.outD;
+    if (this.pidVZ.pid.outputLimit != 0.0f) {
+      thrustRaw = constrain(thrustRaw, -this.pidVZ.pid.outputLimit,
+                            this.pidVZ.pid.outputLimit);
+    }
+  }
+  // Scale the thrust and add the common feed-forward term. In pure ALTHOLD,
+  // a downward velocity request receives an additional 2600 counts so that
+  // commanding a slower descent does not collapse collective thrust. Manual
+  // mode bypasses this controller, and POS_HOLD does not receive this term.
+  const uint32_t descentFeedForward =
+      get_flight_mode() == ALTHOLD_MODE && setpoint->velocity.z < 0.0f ?
+      ALTHOLD_DESCENT_FEED_FORWARD : 0U;
+  const float commandedThrust = thrustRaw * thrustScale +
+      (float)getActiveThrustBase() + (float)descentFeedForward;
+  *thrust = commandedThrust > (float)UINT16_MAX ?
+      UINT16_MAX : (uint16_t)commandedThrust;
   // Check for minimum thrust
   if (*thrust < this.thrustMin) {
     *thrust = this.thrustMin;
@@ -376,6 +432,7 @@ void positionControllerResetAllPID()
   pidReset(&this.pidVZ.pid);
   baroHeightHoldActive = false;
   verticalLandingProtectionApplied = false;
+  verticalDescentThrustLimit = false;
 }
 
 LOG_GROUP_START(posCtl)
