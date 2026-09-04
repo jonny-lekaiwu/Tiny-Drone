@@ -78,7 +78,7 @@
 #define ALT_HOLD_ONE_KEY_TAKEOFF_MS     2500U
 #define ALT_HOLD_LANDING_HEIGHT_MM      600.0f
 #define ALT_HOLD_LANDING_THRUST_MAX     300U
-#define ALT_HOLD_LANDING_CONFIRM_MS     2000U
+#define ALT_HOLD_LANDING_CONFIRM_MS      600U
 #define ALT_HOLD_LANDING_SETTLE_MS      3000U
 #define MANUAL_LOW_BATTERY_LANDING_MS   6000U
 
@@ -496,7 +496,7 @@ void crtpCommanderRpytDecodeSetpoint(setpoint_t *setpoint, CRTPPacket *pk)
     const bool belowLandingTriggerHeight = landingHeightValid &&
         heightMm <= ALT_HOLD_LANDING_HEIGHT_MM;
     /* Manual landing is latched only after both low throttle and a plausible
-     * sub-0.6 m height persist for two seconds. Before that, ordinary
+     * sub-0.6 m height persist for 600 ms. Before that, ordinary
      * altitude control remains active and a single noisy sample is harmless. */
     const bool manualLandingCondition = altHoldTakeoffActive && !landing &&
         rawThrust <= ALT_HOLD_LANDING_THRUST_MAX &&
