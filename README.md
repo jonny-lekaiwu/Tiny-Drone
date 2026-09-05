@@ -1,5 +1,7 @@
 # Tiny-Drone 探秘者开源无人机
 
+**简体中文** | [English](README_EN.md)
+
 > 一款基于 ESP32-S3 开发的开源微型无人机，支持手机 App、手机浏览器和遥控器控制，并提供 Wi-Fi 图传与 RID 广播功能。
 
 <p align="left">
@@ -22,7 +24,9 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
 ## 视频演示
 
 [室内飞行](https://www.bilibili.com/video/BV1T7th6gEEx/)
-[室内飞行](https://www.bilibili.com/video/BV1wDtu6MEMh/)
+[组装教程](https://www.bilibili.com/video/BV1CBtU6UEvK/?spm_id_from=333.1387.upload.video_card.click)
+
+SMT.png
 
 ## 注意事项
 
@@ -153,6 +157,10 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
    - 焊接 FPC 座时，建议使用刀型 USB 电烙铁；出现连锡时，可使用助焊剂和松香拖开焊锡。
    - 焊接 TYPE-C 16Pin 接口时，可使用中温锡膏搭配小体积刀型电烙铁。
 
+   - 贴片图
+
+      <img src="assets/TinyDrone/SMT.png" width="360"/>
+
 ### 编译及烧录
 
 * 基于esp-idf-v5.5.3编译
@@ -252,4 +260,4 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
   <img src="assets/TinyDrone/propeller-installation.png" alt="Tiny-Drone 桨叶正确安装方式" width="600">
 </p>
 
-</details> 
+</details>
