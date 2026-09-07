@@ -24,9 +24,7 @@ Tiny-Drone（探秘者开源无人机）是一款基于 ESP32-S3 开发的无人
 ## 视频演示
 
 [室内飞行](https://www.bilibili.com/video/BV1T7th6gEEx/)
-[组装教程](https://www.bilibili.com/video/BV1CBtU6UEvK/?spm_id_from=333.1387.upload.video_card.click)
-
-SMT.png
+[组装教程](https://www.bilibili.com/video/BV1CBtU6UEvK/) 
 
 ## 注意事项
 
@@ -99,7 +97,7 @@ SMT.png
     <img src="assets/android_app.png" alt="Android App">
   </p>
 
-苹果手机可通过浏览器访问 `192.168.43.42` 进行控制。iOS App 正在规划中，将根据实际需求安排开发。
+苹果手机可通过浏览器访问 `192.168.26.28` 进行控制。iOS App 正在规划中，将根据实际需求安排开发。
 
 <p align="left">
   <img src="assets/TinyDrone/android-app-control.jpg" alt="Android App 控制界面" width="400">

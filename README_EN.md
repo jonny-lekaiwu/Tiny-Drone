@@ -98,7 +98,7 @@ After powering on the drone, connect your phone to the Wi-Fi network `TINY-DRONE
     <img src="assets/android_app.png" alt="Android app download QR code">
   </p>
 
-On an iPhone, open `192.168.43.42` in a browser to control the drone. A native iOS app is planned according to demand.
+On an iPhone, open `192.168.26.28` in a browser to control the drone. A native iOS app is planned according to demand.
 
 <p align="left">
   <img src="assets/TinyDrone/android-app-control.jpg" alt="Android app control interface" width="400">

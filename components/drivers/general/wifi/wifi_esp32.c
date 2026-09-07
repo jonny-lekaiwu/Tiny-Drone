@@ -11,7 +11,6 @@
 #endif
 
 #include "esp_system.h"
-#include "esp_app_desc.h"
 #include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_netif.h"
@@ -248,7 +247,6 @@ static esp_err_t web_camera_status_handler(httpd_req_t *req)
 static esp_err_t web_features_handler(httpd_req_t *req)
 {
     char response[128];
-    const esp_app_desc_t *app_desc = esp_app_get_description();
 #if CONFIG_USING_CAMERA
     const char *camera = "true";
 #else
@@ -261,7 +259,7 @@ static esp_err_t web_features_handler(httpd_req_t *req)
 #endif
     snprintf(response, sizeof(response),
              "{\"camera\":%s,\"wsVideo\":%s,\"version\":\"%s\"}",
-             camera, ws_video, app_desc != NULL ? app_desc->version : "--");
+             camera, ws_video, CONFIG_FIRMWARE_VERSION);
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Cache-Control", "no-store");
     return httpd_resp_send(req, response, HTTPD_RESP_USE_STRLEN);
