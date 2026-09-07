@@ -84,6 +84,29 @@
       font-size: 10px;
       pointer-events: none;
     }
+    #flightTelemetry {
+      position: absolute;
+      z-index: 4;
+      left: 50%;
+      top: calc(50% + 128px);
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      width: max-content;
+      max-width: min(92vw, 620px);
+      color: #dce5ec;
+      font-size: 10px;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    #flightTelemetry span {
+      padding: 3px 7px;
+      border-radius: 9px;
+      background: rgba(0,0,0,.58);
+    }
+    #altitudeHoldStatus[hidden] { display: none; }
     .shade {
       position: absolute;
       inset: 0;
@@ -187,6 +210,71 @@
       font-variant-numeric: tabular-nums;
     }
     .settings-divider { height: 1px; background: rgba(255,255,255,.14); }
+    .version-setting {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #aeb8c2;
+      font-size: 13px;
+    }
+    .version-setting output {
+      color: #dce5ec;
+      font-variant-numeric: tabular-nums;
+    }
+    .camera-setting {
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0;
+    }
+    .camera-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .camera-options.hidden { display: none; }
+    .flip-option {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 12px;
+      background: rgba(255,255,255,.045);
+      color: #dce5ec;
+      cursor: pointer;
+    }
+    .flip-option input { position: absolute; opacity: 0; pointer-events: none; }
+    .flip-check {
+      position: relative;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #7b858f;
+      border-radius: 6px;
+      background: #303841;
+      transition: .18s ease;
+    }
+    .flip-option input:checked + .flip-check {
+      border-color: #36c86b;
+      background: #36c86b;
+    }
+    .flip-option input:checked + .flip-check::after {
+      content: "";
+      position: absolute;
+      left: 5px;
+      top: 1px;
+      width: 5px;
+      height: 10px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+    .flip-option.checked {
+      border-color: rgba(54,200,107,.55);
+      background: rgba(54,200,107,.10);
+    }
     .settings-card button {
       min-height: 46px;
       border: 0;
@@ -274,6 +362,12 @@
       }
       #video img { width: 100%; height: 100%; }
       #videoStats { top: calc(38% + min(108px, calc((100vw - 24px) * .34))); }
+      #flightTelemetry {
+        top: calc(38% + min(132px, calc((100vw - 24px) * .42)));
+        gap: 4px;
+        font-size: 8px;
+      }
+      #flightTelemetry span { padding: 2px 5px; }
       .topbar { align-items: flex-start; }
       .actions {
         max-width: calc(100vw - 66px);
@@ -321,6 +415,28 @@
         <output id="pitchTrimValue">+0.0°</output>
       </label>
       <div class="settings-divider"></div>
+      <label class="switch camera-setting">
+        <input id="cameraFlipSetting" type="checkbox">
+        <span class="track"></span>
+        <span class="switch-text">摄像头翻转</span>
+      </label>
+      <div id="cameraFlipOptions" class="camera-options hidden">
+        <label class="flip-option">
+          <input id="cameraFlipHorizontal" type="checkbox" checked>
+          <span class="flip-check"></span>
+          <span>水平翻转</span>
+        </label>
+        <label class="flip-option">
+          <input id="cameraFlipVertical" type="checkbox" checked>
+          <span class="flip-check"></span>
+          <span>垂直翻转</span>
+        </label>
+      </div>
+      <div class="settings-divider"></div>
+      <div class="version-setting">
+        <span>当前版本</span>
+        <output id="firmwareVersion">--</output>
+      </div>
       <button id="resetSettings" type="button">重置所有设置</button>
       <button id="firmwareUpdate" type="button">固件更新</button>
       <button id="closeSettings" type="button">关闭</button>
@@ -329,6 +445,11 @@
   <main id="app">
     <div id="video"><span id="videoText">点击连接开始图传</span></div>
     <div id="videoStats">-- FPS</div>
+    <div id="flightTelemetry">
+      <span id="relativeHeight">H:--m</span>
+      <span id="ridOperationStatus">运行状态-未报告</span>
+      <span id="altitudeHoldStatus" hidden>定高-锁定</span>
+    </div>
     <div class="shade"></div>
     <header class="topbar">
       <div id="battery">
@@ -345,6 +466,11 @@
           <input id="yawLocked" type="checkbox" checked>
           <span class="track"></span>
           <span class="switch-text">YAW锁定</span>
+        </label>
+        <label class="switch">
+          <input id="cameraFlip" type="checkbox">
+          <span class="track"></span>
+          <span class="switch-text">翻转</span>
         </label>
         <button id="orientationToggle" type="button">竖屏</button>
         <button id="settings" type="button">设置</button>
@@ -376,13 +502,29 @@
     const pitchTrim = document.getElementById('pitchTrim');
     const rollTrimValue = document.getElementById('rollTrimValue');
     const pitchTrimValue = document.getElementById('pitchTrimValue');
+    const cameraFlip = document.getElementById('cameraFlip');
+    const cameraFlipSetting = document.getElementById('cameraFlipSetting');
+    const cameraFlipHorizontal = document.getElementById('cameraFlipHorizontal');
+    const cameraFlipVertical = document.getElementById('cameraFlipVertical');
+    const cameraFlipOptions = document.getElementById('cameraFlipOptions');
+    const firmwareVersion = document.getElementById('firmwareVersion');
+    const relativeHeight = document.getElementById('relativeHeight');
+    const ridOperationStatus = document.getElementById('ridOperationStatus');
+    const altitudeHoldStatus = document.getElementById('altitudeHoldStatus');
     const THROTTLE_SEND_MIN = 50;
+    const ALT_HOLD_DESCEND_MAX = 27766;
+    const ALT_HOLD_CENTER = 32767;
+    const ALT_HOLD_ASCEND_MIN = 37768;
+    const ALT_HOLD_DEADZONE = 0.1;
     const SETTINGS_STORAGE_KEY = 'tinyDroneWebSettings';
     const DEFAULT_SETTINGS = Object.freeze({
       rollTrim: 0,
       pitchTrim: 0,
       carefree: false,
-      yawLocked: true
+      yawLocked: true,
+      cameraFlipEnabled: false,
+      cameraFlipHorizontal: true,
+      cameraFlipVertical: true
     });
     const WS_VIDEO_MAGIC = 0x44575654;
     const WS_VIDEO_HEADER_SIZE = 34;
@@ -406,6 +548,10 @@
     let fpsWindowStartedAt = 0;
     let fpsTimer = null;
     let batteryPollTimer = null;
+    let currentFlightMode = 0;
+    let altitudeHoldUnlocked = false;
+    let ridAirborneObserved = false;
+    let lastRidOperationState = 0;
 
     function resetDisplayedFps(running) {
       displayedFrameCount = 0;
@@ -434,12 +580,62 @@
       battery.classList.toggle('critical', voltage < 3.40);
     }
 
+    function ridStateText(value) {
+      if (value === 0x00) return '未报告';
+      if (value === 0x01) return '地面';
+      if (value === 0x02) return '空中';
+      if (value === 0x03) return '紧急情况';
+      if (value === 0x04) return '故障但可正常控制';
+      if (value === 0x05) return '故障且紧急';
+      if (value >= 0x06 && value <= 0x0f) return '保留';
+      return '未知';
+    }
+
+    function updateFlightTelemetry(data) {
+      const height = Number(data.relativeHeight);
+      relativeHeight.textContent = Number.isFinite(height) ?
+        `H:${height.toFixed(2)}m` : 'H:--m';
+
+      const ridState = Number(data.ridState);
+      ridOperationStatus.textContent = `运行状态-${ridStateText(ridState)}`;
+      if (ridState === 0x02) ridAirborneObserved = true;
+      if (ridState === 0x01 && ridAirborneObserved &&
+          lastRidOperationState !== 0x01) {
+        altitudeHoldUnlocked = false;
+      }
+      lastRidOperationState = ridState;
+
+      const previousAltitudeMode =
+        currentFlightMode === 0x01 || currentFlightMode === 0x02;
+      currentFlightMode = Number(data.flightMode);
+      const altitudeMode = currentFlightMode === 0x01 || currentFlightMode === 0x02;
+      if (previousAltitudeMode && !altitudeMode) {
+        state.throttle = 0;
+        state.yaw = 0;
+        document.getElementById('leftKnob').style.transform = 'translate(0,88%)';
+      }
+      altitudeHoldStatus.hidden = !altitudeMode;
+      if (!altitudeMode) {
+        altitudeHoldUnlocked = false;
+        return;
+      }
+
+      let text = '定高-锁定';
+      if (altitudeHoldUnlocked) {
+        if (state.throttle <= 27766) text = '定高-下降';
+        else if (state.throttle <= 37767 || data.altitudeHolding === true) text = '定高-保持';
+        else text = '定高-上升';
+      }
+      altitudeHoldStatus.textContent = text;
+    }
+
     async function pollBattery() {
       if (!desiredConnected) return;
       try {
-        const response = await fetch('/api/battery', { cache: 'no-store' });
-        const voltage = Number.parseFloat(await response.text());
-        updateBattery(voltage);
+        const response = await fetch('/api/telemetry', { cache: 'no-store' });
+        const telemetry = await response.json();
+        updateBattery(Number(telemetry.battery));
+        updateFlightTelemetry(telemetry);
       } catch (_) {
         /* Keep the last valid reading visible while a short reconnect happens. */
       }
@@ -448,7 +644,7 @@
     function startBatteryPolling() {
       clearInterval(batteryPollTimer);
       pollBattery();
-      batteryPollTimer = setInterval(pollBattery, 1000);
+      batteryPollTimer = setInterval(pollBattery, 500);
     }
 
     function clampTrim(value) {
@@ -462,13 +658,32 @@
       pitchTrimValue.textContent = `${Number(pitchTrim.value) >= 0 ? '+' : ''}${Number(pitchTrim.value).toFixed(1)}°`;
     }
 
+    function applyCameraFlip() {
+      const enabled = cameraFlip.checked;
+      cameraFlipSetting.checked = enabled;
+      cameraFlipOptions.classList.toggle('hidden', !enabled);
+      cameraFlipHorizontal.closest('.flip-option').classList.toggle(
+        'checked', cameraFlipHorizontal.checked);
+      cameraFlipVertical.closest('.flip-option').classList.toggle(
+        'checked', cameraFlipVertical.checked);
+      if (!wsVideoImage) return;
+      const scaleX = enabled && cameraFlipHorizontal.checked ? -1 : 1;
+      const scaleY = enabled && cameraFlipVertical.checked ? -1 : 1;
+      wsVideoImage.style.transform = `scale(${scaleX},${scaleY})`;
+    }
+
     function applySettings(settings) {
       rollTrim.value = clampTrim(settings.rollTrim);
       pitchTrim.value = clampTrim(settings.pitchTrim);
       carefree.checked = settings.carefree === true;
       yawLocked.checked = settings.yawLocked !== false;
       if (carefree.checked) yawLocked.checked = false;
+      cameraFlip.checked = settings.cameraFlipEnabled === true;
+      cameraFlipSetting.checked = cameraFlip.checked;
+      cameraFlipHorizontal.checked = settings.cameraFlipHorizontal !== false;
+      cameraFlipVertical.checked = settings.cameraFlipVertical !== false;
       updateTrimLabels();
+      applyCameraFlip();
     }
 
     function saveSettings() {
@@ -476,7 +691,10 @@
         rollTrim: clampTrim(rollTrim.value),
         pitchTrim: clampTrim(pitchTrim.value),
         carefree: carefree.checked,
-        yawLocked: yawLocked.checked
+        yawLocked: yawLocked.checked,
+        cameraFlipEnabled: cameraFlip.checked,
+        cameraFlipHorizontal: cameraFlipHorizontal.checked,
+        cameraFlipVertical: cameraFlipVertical.checked
       };
       try { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)); }
       catch (_) { /* Private browsing or disabled storage: keep session values. */ }
@@ -510,7 +728,28 @@
           const yawX = yawLocked.checked ? 0 : x;
           knob.style.transform = `translate(${yawX * 113}%,${y * 113}%)`;
           state.yaw = yawLocked.checked ? 0 : normalizedX * (carefree.checked ? MAX_YAW_ANGLE : 90);
-          state.throttle = Math.round((1 - normalizedY) * 27500);
+          const altitudeMode = currentFlightMode === 0x01 || currentFlightMode === 0x02;
+          if (altitudeMode) {
+            const input = -normalizedY;
+            if (input < -ALT_HOLD_DEADZONE) {
+              const scale = (input + 1) / (1 - ALT_HOLD_DEADZONE);
+              state.throttle = Math.round(Math.max(0, Math.min(1, scale)) *
+                                          ALT_HOLD_DESCEND_MAX);
+            } else if (input > ALT_HOLD_DEADZONE) {
+              const scale = (input - ALT_HOLD_DEADZONE) /
+                            (1 - ALT_HOLD_DEADZONE);
+              state.throttle = Math.round(ALT_HOLD_ASCEND_MIN +
+                  Math.max(0, Math.min(1, scale)) *
+                  (65535 - ALT_HOLD_ASCEND_MIN));
+            } else {
+              state.throttle = ALT_HOLD_CENTER;
+            }
+            if (!altitudeHoldUnlocked && state.throttle >= ALT_HOLD_ASCEND_MIN) {
+              altitudeHoldUnlocked = true;
+            }
+          } else {
+            state.throttle = Math.round((1 - normalizedY) * 27500);
+          }
           savedY = y;
         } else {
           knob.style.transform = `translate(${x * 113}%,${y * 113}%)`;
@@ -552,10 +791,15 @@
         if (event.pointerId !== pointerId) return;
         pointerId = null;
         if (isLeft) {
-          state.throttle = 0;
           state.yaw = 0;
-          savedY = 0.78;
-          knob.style.transform = 'translate(0,88%)';
+          const altitudeMode = currentFlightMode === 0x01 || currentFlightMode === 0x02;
+          if (altitudeMode) {
+            knob.style.transform = `translate(0,${savedY * 113}%)`;
+          } else {
+            state.throttle = 0;
+            savedY = 0.78;
+            knob.style.transform = 'translate(0,88%)';
+          }
         } else {
           state.roll = 0;
           state.pitch = 0;
@@ -568,13 +812,18 @@
         if (event.pointerId !== pointerId) return;
         pointerId = null;
         if (isLeft) {
-          state.throttle = 0;
           state.yaw = 0;
-          savedY = 0.78;
-          knob.style.transform = 'translate(0,88%)';
+          const altitudeMode = currentFlightMode === 0x01 || currentFlightMode === 0x02;
+          if (altitudeMode) {
+            knob.style.transform = `translate(0,${savedY * 113}%)`;
+          } else {
+            state.throttle = 0;
+            savedY = 0.78;
+            knob.style.transform = 'translate(0,88%)';
+          }
           enabled = true;
           sendControl(true);
-          status.textContent = '油门已归零';
+          status.textContent = altitudeMode ? '定高油门保持当前位置' : '油门已归零';
           return;
         }
         enabled = false;
@@ -585,13 +834,18 @@
         if (event.pointerId !== pointerId) return;
         pointerId = null;
         if (isLeft) {
-          state.throttle = 0;
           state.yaw = 0;
-          savedY = 0.78;
-          knob.style.transform = 'translate(0,88%)';
+          const altitudeMode = currentFlightMode === 0x01 || currentFlightMode === 0x02;
+          if (altitudeMode) {
+            knob.style.transform = `translate(0,${savedY * 113}%)`;
+          } else {
+            state.throttle = 0;
+            savedY = 0.78;
+            knob.style.transform = 'translate(0,88%)';
+          }
           enabled = true;
           sendControl(true);
-          status.textContent = '油门已归零';
+          status.textContent = altitudeMode ? '定高油门保持当前位置' : '油门已归零';
           return;
         }
         enabled = false;
@@ -625,6 +879,7 @@
       if (!wsVideoImage) {
         wsVideoImage = new Image();
         wsVideoImage.alt = 'Tiny Drone video';
+        applyCameraFlip();
         document.getElementById('video').replaceChildren(wsVideoImage);
       }
       const objectUrl = URL.createObjectURL(
@@ -1004,7 +1259,10 @@
       data.setFloat32(controlOffset + 0, commandedRoll, true);
       data.setFloat32(controlOffset + 4, commandedPitch, true);
       data.setFloat32(controlOffset + 8, state.yaw, true);
-      const throttle = enabled && state.throttle >= THROTTLE_SEND_MIN ? state.throttle : 0;
+      const altitudeMode = currentFlightMode === 0x01 || currentFlightMode === 0x02;
+      const throttleUnlocked = !altitudeMode || altitudeHoldUnlocked;
+      const throttle = enabled && throttleUnlocked &&
+        state.throttle >= THROTTLE_SEND_MIN ? state.throttle : 0;
       data.setUint16(controlOffset + 12, throttle, true);
       data.setUint8(controlOffset + 14, carefree.checked ? 1 : 0);
       controlWorker.postMessage({
@@ -1079,6 +1337,10 @@
       connectToggle.classList.add('connected');
       status.textContent = '正在连接…';
       lastRenderedFrameAt = 0;
+      currentFlightMode = 0;
+      altitudeHoldUnlocked = false;
+      ridAirborneObserved = false;
+      lastRidOperationState = 0;
       resetDisplayedFps(true);
       connectControl();
       startBatteryPolling();
@@ -1112,6 +1374,9 @@
       if (activeVideoUrl) URL.revokeObjectURL(activeVideoUrl);
       activeVideoUrl = null;
       batteryValue.textContent = '--V';
+      relativeHeight.textContent = 'H:--m';
+      ridOperationStatus.textContent = '运行状态-未报告';
+      altitudeHoldStatus.hidden = true;
       battery.classList.remove('low', 'critical');
       connectToggle.textContent = '连接';
       connectToggle.classList.remove('connected');
@@ -1124,14 +1389,42 @@
     });
 
     const settingsPanel = document.getElementById('settingsPanel');
+    async function loadFirmwareVersion() {
+      try {
+        const response = await fetch('/api/features', { cache: 'no-store' });
+        if (!response.ok) return;
+        const features = await response.json();
+        if (typeof features.version === 'string' && features.version.length > 0) {
+          firmwareVersion.textContent = features.version;
+        }
+      } catch (_) { /* Keep the placeholder when the endpoint is unavailable. */ }
+    }
     settingsButton.addEventListener('click', () => {
       settingsPanel.classList.add('open');
+      loadFirmwareVersion();
     });
     document.getElementById('closeSettings').addEventListener('click', () => {
       settingsPanel.classList.remove('open');
     });
     rollTrim.addEventListener('input', () => { updateTrimLabels(); saveSettings(); });
     pitchTrim.addEventListener('input', () => { updateTrimLabels(); saveSettings(); });
+    cameraFlip.addEventListener('change', () => {
+      applyCameraFlip();
+      saveSettings();
+    });
+    cameraFlipSetting.addEventListener('change', () => {
+      cameraFlip.checked = cameraFlipSetting.checked;
+      applyCameraFlip();
+      saveSettings();
+    });
+    cameraFlipHorizontal.addEventListener('change', () => {
+      applyCameraFlip();
+      saveSettings();
+    });
+    cameraFlipVertical.addEventListener('change', () => {
+      applyCameraFlip();
+      saveSettings();
+    });
     carefree.addEventListener('change', () => {
       if (carefree.checked) yawLocked.checked = false;
       saveSettings();

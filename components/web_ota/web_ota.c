@@ -241,7 +241,7 @@ static httpd_handle_t _httpd_start(void)
     /* Reserve one additional URI slot for optional users such as the
      * separate WebSocket video endpoint. Keep web_ota independent of the
      * flight-controller configuration component. */
-    config.max_uri_handlers = basic_handlers_no + 8;
+    config.max_uri_handlers = basic_handlers_no + 9;
     config.server_port = CONFIG_SERVER_PORT;
  
     /*

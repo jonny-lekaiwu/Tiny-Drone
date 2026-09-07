@@ -48,6 +48,14 @@ def merge_bin() -> None:
         sys.exit(1)
 
 
+def combine_flash_all() -> None:
+    """Create root flash_all.bin from fixed TinyDrone partition images."""
+    combine_script = Path("combine.bat").resolve()
+    if not combine_script.exists():
+        raise FileNotFoundError(f"Cannot find {combine_script}")
+    subprocess.run(["cmd.exe", "/d", "/c", str(combine_script)], check=True)
+
+
 def zip_bin(name: str, version: str) -> None:
     """Zip build/merged-binary.bin to releases/v{version}_{name}.zip"""
     out_dir = Path("releases")
@@ -524,6 +532,7 @@ def build_tiny_drone(board_name: str) -> None:
 
     subprocess.run(idf_py + common_args + ["build"], check=True)
     _activate_build_profile(project_root, profile_root, build_dir, board_name)
+    combine_flash_all()
 
 ################################################################################
 # Compile implementation
@@ -644,6 +653,7 @@ if __name__ == "__main__":
     # Current directory firmware packaging mode
     if args.board is None:
         merge_bin()
+        combine_flash_all()
         curr_board_type = get_board_type_from_compile_commands()
         if curr_board_type is None:
             print("Failed to parse board_type from compile_commands.json", file=sys.stderr)

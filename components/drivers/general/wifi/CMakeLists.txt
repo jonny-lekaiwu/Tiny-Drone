@@ -1,4 +1,4 @@
-set(WIFI_REQUIRES crazyflie platform config esp_wifi web_ota)
+set(WIFI_REQUIRES crazyflie platform config esp_wifi web_ota remote_id)
 
 if(IDF_TARGET STREQUAL "esp32s3")
     list(APPEND WIFI_REQUIRES espressif__esp32-camera espressif__esp_jpeg)

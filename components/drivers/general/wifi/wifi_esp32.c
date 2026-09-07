@@ -11,6 +11,7 @@
 #endif
 
 #include "esp_system.h"
+#include "esp_app_desc.h"
 #include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_netif.h"
@@ -24,6 +25,7 @@
 #include "wifi_esp32.h"
 #include "crtp_commander.h"
 #include "pm_esplane.h"
+#include "remote_id.h"
 #include "web_ota.h"
 #include "stm32_legacy.h"
 #define DEBUG_MODULE  "WIFI_UDP"
@@ -245,17 +247,24 @@ static esp_err_t web_camera_status_handler(httpd_req_t *req)
 
 static esp_err_t web_features_handler(httpd_req_t *req)
 {
+    char response[128];
+    const esp_app_desc_t *app_desc = esp_app_get_description();
+#if CONFIG_USING_CAMERA
+    const char *camera = "true";
+#else
+    const char *camera = "false";
+#endif
+#if CONFIG_USING_CAMERA && (WIFI_WEB_COMBINED_WS_ENABLE || WIFI_WEB_SEPARATE_VIDEO_WS_ENABLE)
+    const char *ws_video = "true";
+#else
+    const char *ws_video = "false";
+#endif
+    snprintf(response, sizeof(response),
+             "{\"camera\":%s,\"wsVideo\":%s,\"version\":\"%s\"}",
+             camera, ws_video, app_desc != NULL ? app_desc->version : "--");
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Cache-Control", "no-store");
-#if CONFIG_USING_CAMERA
-#if WIFI_WEB_COMBINED_WS_ENABLE || WIFI_WEB_SEPARATE_VIDEO_WS_ENABLE
-    return httpd_resp_send(req, "{\"camera\":true,\"wsVideo\":true}", HTTPD_RESP_USE_STRLEN);
-#else
-    return httpd_resp_send(req, "{\"camera\":true,\"wsVideo\":false}", HTTPD_RESP_USE_STRLEN);
-#endif
-#else
-    return httpd_resp_send(req, "{\"camera\":false,\"wsVideo\":false}", HTTPD_RESP_USE_STRLEN);
-#endif
+    return httpd_resp_send(req, response, HTTPD_RESP_USE_STRLEN);
 }
 
 static esp_err_t web_battery_handler(httpd_req_t *req)
@@ -265,6 +274,25 @@ static esp_err_t web_battery_handler(httpd_req_t *req)
     httpd_resp_set_type(req, "text/plain");
     httpd_resp_set_hdr(req, "Cache-Control", "no-store");
     return httpd_resp_send(req, voltage, HTTPD_RESP_USE_STRLEN);
+}
+
+static esp_err_t web_telemetry_handler(httpd_req_t *req)
+{
+    float relativeHeightM = 0.0f;
+    const uint8_t flightMode = (uint8_t)
+        crtpCommanderRpytGetFlightTelemetry(&relativeHeightM);
+    const uint8_t ridState = remoteIdGetOperationState();
+    const bool altitudeHolding = crtpCommanderRpytIsAltitudeHoldActive();
+    char telemetry[144];
+    snprintf(telemetry, sizeof(telemetry),
+             "{\"battery\":%.3f,\"relativeHeight\":%.3f,"
+             "\"flightMode\":%u,\"altitudeHolding\":%s,\"ridState\":%u}",
+             (double)pmGetBatteryVoltage(), (double)relativeHeightM,
+             (unsigned int)flightMode, altitudeHolding ? "true" : "false",
+             (unsigned int)ridState);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    return httpd_resp_send(req, telemetry, HTTPD_RESP_USE_STRLEN);
 }
 
 static bool web_queue_control(const web_control_packet_t *command)
@@ -683,6 +711,9 @@ static void web_remote_register_handlers(httpd_handle_t server)
     static const httpd_uri_t battery = {
         .uri = "/api/battery", .method = HTTP_GET,
         .handler = web_battery_handler, .user_ctx = NULL};
+    static const httpd_uri_t telemetry = {
+        .uri = "/api/telemetry", .method = HTTP_GET,
+        .handler = web_telemetry_handler, .user_ctx = NULL};
     static const httpd_uri_t control = {
         .uri = "/api/control", .method = HTTP_POST,
         .handler = web_control_handler, .user_ctx = NULL};
@@ -702,6 +733,7 @@ static void web_remote_register_handlers(httpd_handle_t server)
 #endif
     REGISTER_WEB_URI(features);
     REGISTER_WEB_URI(battery);
+    REGISTER_WEB_URI(telemetry);
     REGISTER_WEB_URI(control);
     REGISTER_WEB_URI(controlWs);
 #undef REGISTER_WEB_URI
