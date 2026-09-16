@@ -126,7 +126,7 @@ menu "Tiny_Drone Config"
         config ZRANGE_PIN_SDA
             int "ZRANGE_PIN_SDA GPIO number"
             range -1 50 if TARGET_TINY_DRONE_V1_0
-            default 48 if TARGET_TINY_DRONE_V1_0
+            default 41 if TARGET_TINY_DRONE_V1_0
             range -1 21 if TARGET_TINY_DRONE_MINI_V1_0
             default -1 if TARGET_TINY_DRONE_MINI_V1_0 
             help
@@ -135,7 +135,7 @@ menu "Tiny_Drone Config"
         config ZRANGE_PIN_SCL
             int "ZRANGE_PIN_SCL GPIO number"
             range -1 50 if TARGET_TINY_DRONE_V1_0
-            default 45 if TARGET_TINY_DRONE_V1_0
+            default 40 if TARGET_TINY_DRONE_V1_0
             range -1 21 if TARGET_TINY_DRONE_MINI_V1_0
             default -1 if TARGET_TINY_DRONE_MINI_V1_0 
             help
@@ -241,7 +241,7 @@ menu "Tiny_Drone Config"
         config MOTOR04_PIN
             int "MOTOR04_PIN GPIO number"
             range -1 50 if TARGET_TINY_DRONE_V1_0
-            default 41 if TARGET_TINY_DRONE_V1_0
+            default 45 if TARGET_TINY_DRONE_V1_0
             range -1 21 if TARGET_TINY_DRONE_MINI_V1_0
             default 10 if TARGET_TINY_DRONE_MINI_V1_0 
             help
