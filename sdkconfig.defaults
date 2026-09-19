@@ -1,3 +1,5 @@
+# Default for a fresh checkout; explicit set-target/build profiles still override it.
+CONFIG_IDF_TARGET="esp32s3"
 CONFIG_ESP32_PHY_MAX_WIFI_TX_POWER=20
 CONFIG_ESP32_PHY_MAX_TX_POWER=20
 

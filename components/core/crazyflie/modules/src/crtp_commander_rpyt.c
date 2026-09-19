@@ -42,6 +42,7 @@
 #include "position_controller.h"
 #include "pm_esplane.h"
 #include "sitaw.h"
+#include "motors.h"
 #include "config.h"
 #include "stm32_legacy.h"
 #define DEBUG_MODULE "MODE"
@@ -148,6 +149,12 @@ static float altHoldRelativeStableMin = 0.0f;
 static float altHoldRelativeStableMax = 0.0f;
 static volatile bool lowBatteryAlarmRequested = false;
 static volatile bool tumbleAlarmRequested = false;
+static portMUX_TYPE activationAlarmMux = portMUX_INITIALIZER_UNLOCKED;
+static bool activationAlarmRequested;
+static bool activationAlarmIssuedForStick;
+static bool activationAlarmPlayed;
+static TickType_t activationAlarmLastTick;
+static TickType_t activationThrottleLastTick;
 static bool tumbleAlarmIssuedForStick = false;
 #if ENABLE_LOW_BATTERY_FLIGHT_PROTECTION
 static bool lowBatteryAlarmIssuedForStick = false;
@@ -244,6 +251,46 @@ bool crtpCommanderConsumeTumbleAlarmRequest(void)
 
   tumbleAlarmRequested = false;
   return true;
+}
+
+static void updateActivationThrottle(uint16_t rawThrust)
+{
+  /* Assisted modes use a centered stick: neutral must not sound an alarm. */
+  const bool raised = altHoldMode ?
+      rawThrust > ALT_HOLD_THRUST_CENTER + ALT_HOLD_THRUST_DEADZONE :
+      rawThrust >= MIN_THRUST;
+  const TickType_t now = xTaskGetTickCount();
+  portENTER_CRITICAL(&activationAlarmMux);
+  activationThrottleLastTick = now;
+  if (!motorsIsActivationLocked() || !raised) {
+    activationAlarmIssuedForStick = false;
+    activationAlarmRequested = false;
+  } else if (!activationAlarmIssuedForStick) {
+    activationAlarmRequested = true;
+    activationAlarmIssuedForStick = true;
+  }
+  portEXIT_CRITICAL(&activationAlarmMux);
+}
+
+bool crtpCommanderConsumeActivationAlarmRequest(void)
+{
+  const TickType_t now = xTaskGetTickCount();
+  bool play = false;
+  portENTER_CRITICAL(&activationAlarmMux);
+  /* Drop stale requests after control packets stop arriving. */
+  if (!motorsIsActivationLocked() ||
+      now - activationThrottleLastTick > pdMS_TO_TICKS(500)) {
+    activationAlarmRequested = false;
+    activationAlarmIssuedForStick = false;
+  } else if (activationAlarmRequested &&
+             (!activationAlarmPlayed || now - activationAlarmLastTick >= pdMS_TO_TICKS(2000))) {
+    activationAlarmRequested = false;
+    activationAlarmPlayed = true;
+    activationAlarmLastTick = now;
+    play = true;
+  }
+  portEXIT_CRITICAL(&activationAlarmMux);
+  return play;
 }
 
 FlightMode crtpCommanderRpytGetFlightTelemetry(float *relativeHeightM)
@@ -392,6 +439,7 @@ void crtpCommanderRpytDecodeSetpoint(setpoint_t *setpoint, CRTPPacket *pk)
 
   // Thrust
   uint16_t rawThrust = values->thrust;
+  updateActivationThrottle(rawThrust);
 
 #ifdef SITAW_TU_ENABLED
   /* A tumbled emergency stop is intentionally latched. Report the reason

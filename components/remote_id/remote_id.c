@@ -1,4 +1,5 @@
 #include "remote_id.h"
+#include "device_activation.h"
 
 #include <math.h>
 #include <stdbool.h>
@@ -17,8 +18,6 @@
 #include "stabilizer.h"
 #include "system.h"
 #include "esp_mac.h"
-
-static const char *TAG = "remote_id";
 
 #define RID_FLIGHT_MOTOR_SUM_THRESHOLD 1000
 #define RID_GROUND_CONFIRM_SAMPLES 2
@@ -64,6 +63,8 @@ uint8_t remoteIdGetOperationState(void)
 }
 
 #if CONFIG_REMOTE_ID_ENABLE
+
+static const char *TAG = "remote_id";
 
 #define RID_FRAME_MAX 160
 #define GB46750_CONTENT_LEN 66
@@ -166,8 +167,6 @@ static uint16_t altitude_from_cm(int32_t altitude_cm)
     return value > 0 && value <= UINT16_MAX ? (uint16_t)value : 0;
 }
 
-static uint8_t self_mac[6];
-
 static uint16_t build_gb46750_packet(uint8_t *packet)
 {
     uint16_t p = 0;
@@ -183,15 +182,12 @@ static uint16_t build_gb46750_packet(uint8_t *packet)
 
     memset(packet + p, 0, 20);
   
-    char config_remote_id_uas_id[21]={0}; 
-
-    snprintf(config_remote_id_uas_id, sizeof(config_remote_id_uas_id),"DY00TD00%02X%02X%02X%02X%02X%02X", self_mac[0], self_mac[1], self_mac[2], self_mac[3], self_mac[4], self_mac[5]);
-
-    memcpy(packet + p, config_remote_id_uas_id, strnlen(config_remote_id_uas_id, 20));
+    const char *product_id = deviceActivationProductId();
+    memcpy(packet + p, product_id, strnlen(product_id, 20));
     p += 20;                     /* 001 unique product ID */
     memset(packet + p, 0, 8);
-    memcpy(packet + p, CONFIG_REMOTE_ID_REGISTRATION_ID,
-           strnlen(CONFIG_REMOTE_ID_REGISTRATION_ID, 8));
+    const char *registration_id = deviceActivationRegistrationId();
+    memcpy(packet + p, registration_id, strnlen(registration_id, 8));
     p += 8;                      /* 002 registration ID, last 8 chars */
     packet[p++] = 0x00;          /* 004 micro UA */
     packet[p++] = station_position_valid ? 0x01 : 0x00;
@@ -251,15 +247,8 @@ static void remote_id_task(void *arg)
 {
     (void)arg;
  
-    esp_read_mac(self_mac, ESP_MAC_EFUSE_FACTORY); 
-
     wifi_mode_t mode;
     while (esp_wifi_get_mode(&mode) != ESP_OK) vTaskDelay(pdMS_TO_TICKS(250));
-
-    // if (strlen(CONFIG_REMOTE_ID_UAS_ID) != 20 ||
-    //     strlen(CONFIG_REMOTE_ID_REGISTRATION_ID) != 8) {
-    //     ESP_LOGW(TAG, "GB46750 RID has placeholder ID/registration; configure before flight");
-    // }
 
     uint8_t counter = 0;
     for (;;) {

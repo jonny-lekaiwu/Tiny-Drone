@@ -29,6 +29,7 @@
 
 #include "stm32_legacy.h"
 #include "motors.h"
+#include "device_activation.h"
 #include "pm_esplane.h"
 #include "log.h"
 #define DEBUG_MODULE "MOTORS"
@@ -58,6 +59,11 @@ static uint32_t frequency_now = 15000;
 
 static bool isInit = false;
 static bool isTimerInit = false;
+
+bool motorsIsActivationLocked(void)
+{
+    return ENABLE_ACTIVATION_MOTOR_LOCK && !deviceActivationIsActive();
+}
 
 #if CONFIG_USING_CAMERA
 extern bool camera_init_ok(void);
@@ -107,7 +113,7 @@ static uint16_t motorsConv16ToBits(uint16_t bits)
 
 static void motorsTestBeep(uint32_t motorId, bool enable, uint16_t frequency)
 {
-    const uint16_t ratio = enable ?
+    const uint16_t ratio = enable && !motorsIsActivationLocked() ?
         (uint16_t)(((uint32_t)UINT16_MAX * 8U) / 100U) : 0U;
 
     ASSERT(motorId < NBR_OF_MOTORS);
@@ -256,6 +262,8 @@ void motorsSetRatio(uint32_t id, uint16_t ithrust)
         }
 
 #endif
+        /* Final gate also covers direct motor tests and compensated thrust. */
+        if (motorsIsActivationLocked()) ratio = 0;
         ledc_set_duty(motors_channel[id].speed_mode, motors_channel[id].channel, (uint32_t)motorsConv16ToBits(ratio));
         ledc_update_duty(motors_channel[id].speed_mode, motors_channel[id].channel);
         motor_ratios[id] = ratio;
@@ -286,6 +294,7 @@ void motorsBeep(int id, bool enable, uint16_t frequency, uint16_t ratio)
     }
     
     ledc_set_freq(LEDC_LOW_SPEED_MODE,LEDC_TIMER_0,freq_hz);
+    if (motorsIsActivationLocked()) ratio = 0;
     ledc_set_duty(motors_channel[id].speed_mode, motors_channel[id].channel, (uint32_t)motorsConv16ToBits(ratio));
     ledc_update_duty(motors_channel[id].speed_mode, motors_channel[id].channel);
 }
@@ -414,6 +423,31 @@ void play_mpu6050_error(void)
 void play_tumble_error(void)
 {
     motorsPlayMelody(tumble_error_sound);
+}
+
+void play_activation_error(void)
+{
+    if (!isInit || !motorsIsActivationLocked()) return;
+
+    /* Only this fixed cue may energize locked motors. Ordinary thrust, tests,
+     * and other melodies remain locked throughout; there is no global bypass.
+     * Called by the stabilizer after powerStop(), like the existing alarms. */
+    const uint16_t tone_ratio = (uint16_t)(UINT16_MAX / 20U);
+    ledc_set_freq(LEDC_LOW_SPEED_MODE, LEDC_TIMER_0, C6);
+    for (unsigned pulse = 0; pulse < 3; ++pulse) {
+        for (unsigned i = 0; i < NBR_OF_MOTORS; ++i) {
+            ledc_set_duty(motors_channel[i].speed_mode, motors_channel[i].channel,
+                          motorsConv16ToBits(tone_ratio));
+            ledc_update_duty(motors_channel[i].speed_mode, motors_channel[i].channel);
+        }
+        vTaskDelay(M2T(70));
+        for (unsigned i = 0; i < NBR_OF_MOTORS; ++i) {
+            ledc_set_duty(motors_channel[i].speed_mode, motors_channel[i].channel, 0);
+            ledc_update_duty(motors_channel[i].speed_mode, motors_channel[i].channel);
+        }
+        if (pulse < 2) vTaskDelay(M2T(70));
+    }
+    ledc_set_freq(LEDC_LOW_SPEED_MODE, LEDC_TIMER_0, frequency_now);
 }
 
 LOG_GROUP_START(pwm)

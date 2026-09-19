@@ -31,6 +31,7 @@
 #include "platform.h"
 #include "system.h"
 #include "remote_id.h"
+#include "device_activation.h"
 #define DEBUG_MODULE "APP_MAIN"
 #include "debug_cf.h"
 
@@ -50,6 +51,9 @@ void app_main()
     }
 
     ESP_ERROR_CHECK(ret);
+
+    /* Load the motor interlock before any driver or flight task starts. */
+    ESP_ERROR_CHECK(deviceActivationInit(ENABLE_ACTIVATION_MOTOR_LOCK != 0));
 
     /*Initialize the platform.*/
     if (platformInit() == false) {
