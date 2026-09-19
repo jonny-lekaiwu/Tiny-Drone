@@ -15,6 +15,8 @@
 #include "freertos/task.h"
 #include "nvs.h"
 
+#include "web_ota.h"
+
 #define LINE_BYTES 256
 #define RECORD_VERSION 1 
 
@@ -174,13 +176,13 @@ static void handle_command(char *line)
     if (!strcmp(line, "AT") || !strcmp(line, "AT+PING")) send_line("OK");
     else if (!strcmp(line, "AT+HELLO")) {
         char response[160];
-        snprintf(response, sizeof(response), "+HELLO:%s|usb_serial_jtag|Tiny-Drone-activation-1|%u|%s|%s",
+        snprintf(response, sizeof(response), "+HELLO:%s|usb_serial_jtag|Tiny-Drone-%s|%u|%s|%s",
 #if CONFIG_IDF_TARGET_ESP32S3
                  "ESP32-S3",
 #else
                  "ESP32-C3",
 #endif
-                 activated ? 1 : 0, record.product, activated ? record.uas : "-");
+                 CONFIG_FIRMWARE_VERSION,activated ? 1 : 0, record.product, activated ? record.uas : "-");
         send_line(response);
         send_line("OK");
     } else if (!strncmp(line, "AT+ACTIVATE=", 12)) handle_activate(line + 12);

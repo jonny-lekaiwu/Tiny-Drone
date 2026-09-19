@@ -53,6 +53,7 @@
 #define ENABLE_ACTIVATION_MOTOR_LOCK 1
 
 /* CONFIG_REMOTE_ID_ENABLE is supplied by sdkconfig/menuconfig. */
+#define CONFIG_REMOTE_ID_ENABLE 0
 
 #ifdef CONFIG_TARGET_TINY_DRONE_V1_0
 #ifndef CONFIG_IDF_TARGET_ESP32S3
