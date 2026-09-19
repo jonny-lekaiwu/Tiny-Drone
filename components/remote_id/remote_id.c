@@ -19,6 +19,8 @@
 #include "system.h"
 #include "esp_mac.h"
 
+#define CONFIG_REMOTE_ID_ENABLE 0
+
 #define RID_FLIGHT_MOTOR_SUM_THRESHOLD 1000
 #define RID_GROUND_CONFIRM_SAMPLES 2
 #define RID_GYRO_STATIC_DPS 5.0f
