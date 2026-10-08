@@ -3,19 +3,30 @@ setlocal EnableExtensions
 
 set "PROJECT_ROOT=%~dp0"
 set "BIN_DIR=%PROJECT_ROOT%assets\bin"
-set "APP_BIN=%PROJECT_ROOT%build\Tiny-Drone.bin"
 set "OUTPUT_BIN=%PROJECT_ROOT%flash_all.bin"
 
-if not exist "%APP_BIN%" set "APP_BIN=%PROJECT_ROOT%tiny-drone-build\build\Tiny-Drone.bin"
+if not "%~1"=="" (
+    set "APP_BIN=%~1\Tiny-Drone.bin"
+) else (
+    set "APP_BIN=%PROJECT_ROOT%build\Tiny-Drone.bin"
+)
+
+if not exist "%APP_BIN%" if "%~1"=="" set "APP_BIN=%PROJECT_ROOT%tiny-drone-build\build\Tiny-Drone.bin"
 
 if not exist "%APP_BIN%" (
     echo [ERROR] Tiny-Drone.bin not found. Build the firmware first.
     exit /b 1
 )
 
-for %%F in (bootloader.bin partition-table.bin nvs.bin ota_data_initial.bin) do (
-    if not exist "%BIN_DIR%\%%F" (
-        echo [ERROR] Missing %BIN_DIR%\%%F
+for %%F in ("%APP_BIN%") do set "BUILD_BIN_DIR=%%~dpF"
+set "BOOT_BIN=%BUILD_BIN_DIR%bootloader\bootloader.bin"
+set "PARTITION_BIN=%BUILD_BIN_DIR%partition_table\partition-table.bin"
+set "OTA_BIN=%BUILD_BIN_DIR%ota_data_initial.bin"
+set "NVS_BIN=%BIN_DIR%\nvs.bin"
+
+for %%F in ("%BOOT_BIN%" "%PARTITION_BIN%" "%NVS_BIN%" "%OTA_BIN%") do (
+    if not exist "%%~F" (
+        echo [ERROR] Missing %%~F
         exit /b 1
     )
 )
@@ -46,10 +57,10 @@ if not defined IDF_PYTHON (
 
 echo Merging flash_all.bin...
 "%IDF_PYTHON%" -m esptool --chip esp32s3 merge_bin -o "%OUTPUT_BIN%" -f raw ^
-    0x0 "%BIN_DIR%\bootloader.bin" ^
-    0x8000 "%BIN_DIR%\partition-table.bin" ^
-    0x9000 "%BIN_DIR%\nvs.bin" ^
-    0xe000 "%BIN_DIR%\ota_data_initial.bin" ^
+    0x0 "%BOOT_BIN%" ^
+    0x8000 "%PARTITION_BIN%" ^
+    0x9000 "%NVS_BIN%" ^
+    0xe000 "%OTA_BIN%" ^
     0x10000 "%BIN_DIR%\Tiny-Drone.bin"
 if errorlevel 1 (
     echo [ERROR] flash_all.bin merge failed.
