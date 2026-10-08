@@ -54,6 +54,7 @@
 #include "stabilizer.h"
 #include "commander.h"
 #include "console.h"
+#include "motors.h"
 #include "wifilink.h"
 #include "mem.h"
 //#include "proximity.h"
@@ -253,18 +254,18 @@ void systemSetCanFly(bool val)
 
 bool systemCanFly(void)
 {
-  return canFly;
+  return canFly && !motorsIsActivationLocked();
 }
 
 void systemSetArmed(bool val)
 {
-  armed = val;
+  armed = val && !motorsIsActivationLocked();
 }
 
 bool systemIsArmed()
 {
 
-  return armed || forceArm;
+  return !motorsIsActivationLocked() && (armed || forceArm);
 }
 // void vApplicationIdleHook( void )
 // {

@@ -59,13 +59,12 @@ menu "Tiny_Drone Config"
             help
                 Wi-Fi Max Station Connection, 1-6
  
-        config REMOTE_ID_REGISTRATION_ID
-            string "Real-name registration ID (last 8 characters)"
-            depends on REMOTE_ID_ENABLE
-            default ""
+        config REMOTE_ID_ENABLE
+            bool "Enable remote identification broadcast"
+            default y
             help
-                Last 8 characters issued by the UOM real-name registration system.
-                Leave empty only for bench testing; the transmitted field is then NULL-filled.
+                Broadcast the device product ID and the registration ID saved
+                by USB activation. Unactivated devices send an empty registration ID.
 
     endmenu
 

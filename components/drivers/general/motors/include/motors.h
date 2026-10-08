@@ -208,6 +208,9 @@ void play_poshold_mode(void);
 void play_low_battery_error(void);
 void play_mpu6050_error(void);
 void play_tumble_error(void);
+/* The bypass changes motor policy, never the stored activation status. */
+bool motorsIsActivationLocked(void);
+void play_activation_error(void);
 
 #endif /* __MOTORS_H__ */
 

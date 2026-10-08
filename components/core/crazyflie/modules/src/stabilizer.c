@@ -345,7 +345,10 @@ static void stabilizerTask(void* param)
 
       /* Motor tones share the PWM peripheral. Tumble protection has already
        * called powerStop(); low-battery tones wait for zero commanded thrust. */
-      if (emergencyStop &&
+      if (motorsIsActivationLocked() &&
+          crtpCommanderConsumeActivationAlarmRequest()) {
+        play_activation_error();
+      } else if (emergencyStop &&
           crtpCommanderConsumeTumbleAlarmRequest()) {
         play_tumble_error();
       } else if (control.thrust == 0 &&

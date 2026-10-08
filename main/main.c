@@ -31,6 +31,7 @@
 #include "platform.h"
 #include "system.h"
 #include "remote_id.h"
+#include "device_activation.h"
 #define DEBUG_MODULE "APP_MAIN"
 #include "debug_cf.h"
 
@@ -50,6 +51,11 @@ void app_main()
     }
 
     ESP_ERROR_CHECK(ret);
+
+    /* Load the activation state before any driver or flight task starts. */
+#if ENABLE_DEVICE_ACTIVATION
+    ESP_ERROR_CHECK(deviceActivationInit(ENABLE_ACTIVATION_MOTOR_LOCK != 0));
+#endif
 
     /*Initialize the platform.*/
     if (platformInit() == false) {

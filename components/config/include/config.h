@@ -49,11 +49,18 @@
 /* Set to 1 to enable the latched <3.0 V assisted-flight landing lock. */
 #define ENABLE_LOW_BATTERY_FLIGHT_PROTECTION 1
 
-#define CONFIG_REMOTE_ID_ENABLE 0
+/* Normal branch: no activation USB task and no activation-related flight stop. */
+#define ENABLE_DEVICE_ACTIVATION 0
+
+/* Keep the motor interlock tied to the activation service master switch. */
+#define ENABLE_ACTIVATION_MOTOR_LOCK ENABLE_DEVICE_ACTIVATION
+
+/* CONFIG_REMOTE_ID_ENABLE is supplied by sdkconfig/menuconfig. */
+//#define CONFIG_REMOTE_ID_ENABLE 0
 
 #ifdef CONFIG_TARGET_TINY_DRONE_V1_0
 #ifndef CONFIG_IDF_TARGET_ESP32S3
-#error "TINY_DRONE hardware with ESP32S3 onboard"
+#error "TINY_DRONE hardware with ESP32S3 onboard" 
 #endif
 #define CONFIG_USING_CAMERA 1
 #elif defined(CONFIG_TARGET_TINY_DRONE_MINI_V1_0)
@@ -79,7 +86,7 @@
   #define portGET_RUN_TIME_COUNTER_VALUE() usecTimestamp()
 #endif
 
-#define CONFIG_REMOTE_ID_REGISTRATION_ID ""
+/* The registration ID is loaded from the device activation record. */
 
 //#define DEBUG_UDP
 //#define DEBUG_EP2

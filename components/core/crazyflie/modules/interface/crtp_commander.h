@@ -51,6 +51,7 @@ bool crtpCommanderWebSetpoint(float roll,
                               bool carefree);
 bool crtpCommanderConsumeLowBatteryAlarmRequest(void);
 bool crtpCommanderConsumeTumbleAlarmRequest(void);
+bool crtpCommanderConsumeActivationAlarmRequest(void);
 FlightMode crtpCommanderRpytGetFlightTelemetry(float *relativeHeightM);
 bool crtpCommanderRpytIsAltitudeHoldActive(void);
 
