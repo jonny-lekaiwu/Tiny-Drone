@@ -17,9 +17,7 @@
 #include "motors.h"
 #include "stabilizer.h"
 #include "system.h"
-#include "esp_mac.h"
-
-#define CONFIG_REMOTE_ID_ENABLE 0
+#include "esp_mac.h" 
 
 #define RID_FLIGHT_MOTOR_SUM_THRESHOLD 1000
 #define RID_GROUND_CONFIRM_SAMPLES 2

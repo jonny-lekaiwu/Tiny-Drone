@@ -33,11 +33,12 @@ extern "C" {
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "esp_app_desc.h"
 #include "nvs_flash.h"
 #include "esp_netif.h" 
  
 
-#define CONFIG_FIRMWARE_VERSION "01.00"
+#define CONFIG_FIRMWARE_VERSION (esp_app_get_description()->version)
   
 #define CONFIG_SERVER_PORT      80
 #define WEB_BUFSIZE             4096 
