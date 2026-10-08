@@ -534,7 +534,6 @@ def build_tiny_drone(board_name: str) -> None:
 
     subprocess.run(idf_py + common_args + ["build"], check=True)
     _activate_build_profile(project_root, profile_root, build_dir, board_name)
-    combine_flash_all()
 
 ################################################################################
 # Compile implementation
