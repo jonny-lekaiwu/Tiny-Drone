@@ -49,8 +49,11 @@
 /* Set to 1 to enable the latched <3.0 V assisted-flight landing lock. */
 #define ENABLE_LOW_BATTERY_FLIGHT_PROTECTION 1
 
-/* 1: lock flight until activated and warn on throttle; 0: bypass this lock. */
-#define ENABLE_ACTIVATION_MOTOR_LOCK 1
+/* Master switch for the USB activation service and activation flight policy. */
+#define ENABLE_DEVICE_ACTIVATION 1
+
+/* Keep the motor interlock tied to the activation service master switch. */
+#define ENABLE_ACTIVATION_MOTOR_LOCK ENABLE_DEVICE_ACTIVATION
 
 /* CONFIG_REMOTE_ID_ENABLE is supplied by sdkconfig/menuconfig. */
 //#define CONFIG_REMOTE_ID_ENABLE 0

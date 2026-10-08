@@ -34,12 +34,14 @@ def get_board_type_from_compile_commands() -> Optional[str]:
 
 
 def get_project_version() -> Optional[str]:
-    """Read set(PROJECT_VER "x.y.z") from root CMakeLists.txt"""
-    with Path("CMakeLists.txt").open(encoding='utf-8') as f:
-        for line in f:
-            if line.startswith("set(PROJECT_VER"):
-                return line.split("\"")[1]
-    return None
+    """Read the single firmware version source from root version.txt."""
+    version_file = Path("version.txt")
+    if not version_file.exists():
+        return None
+    version = version_file.read_text(encoding="utf-8").strip()
+    if not re.fullmatch(r"\d{2}\.\d{2}\.\d{2}", version):
+        raise ValueError(f"version.txt must use XX.XX.XX format, got: {version!r}")
+    return version
 
 
 def merge_bin() -> None:
