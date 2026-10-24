@@ -23,6 +23,10 @@ Key features:
 
 ## Video Demonstrations
 
+<p align="left">
+  <img src="assets/TinyDrone/demo.gif" alt="Tiny-Drone feature demonstration">
+</p>
+
 - [Indoor flight](https://www.bilibili.com/video/BV1T7th6gEEx/)
 - [Assembly tutorial](https://www.bilibili.com/video/BV1CBtU6UEvK/)
 
