@@ -143,16 +143,12 @@ In addition to the Android App and web browser, Tiny-Drone supports a dedicated 
 
 ## 📸 Tiny-Drone Gallery
 
-<table>
-<tr>
-<td width="50%"><img src="assets/TinyDrone/tiny-drone-photo-1.jpg" width="100%"></td>
-<td width="50%"><img src="assets/TinyDrone/tiny-drone-photo-2.jpg" width="100%"></td>
-</tr>
-<tr>
-<td><img src="assets/TinyDrone/tiny-drone-photo-3.jpg" width="100%"></td>
-<td><img src="assets/TinyDrone/tiny-drone-photo-4.jpg" width="100%"></td>
-</tr>
-</table>
+<p align="center">
+  <img src="assets/TinyDrone/tiny-drone-photo-1.jpg" width="23%" alt="Tiny-Drone 实物图 1">
+  <img src="assets/TinyDrone/tiny-drone-photo-2.jpg" width="23%" alt="Tiny-Drone 实物图 2">
+  <img src="assets/TinyDrone/tiny-drone-photo-3.jpg" width="23%" alt="Tiny-Drone 实物图 3">
+  <img src="assets/TinyDrone/tiny-drone-photo-4.jpg" width="23%" alt="Tiny-Drone 实物图 4">
+</p>
 
 ---
 
