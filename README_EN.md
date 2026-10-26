@@ -1,16 +1,7 @@
-<div align="center">
-
-<table>
-<tr>
-<td align="center" width="50%"><a href="README.md"><b>简体中文 →</b></a></td>
-<td align="center" width="50%"><b>English ✓</b></td>
-</tr>
-</table> 
-</div>
-
----
 
 ## ✨ Tiny-Drone
+
+[简体中文](README.md) | **English**
 
 <table>
 <tr>
