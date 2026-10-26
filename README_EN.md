@@ -6,7 +6,7 @@
 <table>
 <tr>
 <td width="25%" align="center"><b>📷 Wi-Fi Video</b><br><sub>Live video streaming<br>while you fly</sub></td>
-<td width="25%" align="center"><b>🎮 Multiple Controls</b><br><sub>Android App · Web Browser<br>Physical Controller (ESP32-C3)</sub></td>
+<td width="25%" align="center"><b>🎮 多种控制</b><br><sub>Android App · Web 浏览器<br>实体遥控器</sub></td>
 <td width="25%" align="center"><b>📡 RID Broadcast</b><br><sub>RID broadcast support<br>Registration & activation</sub></td>
 <td width="25%" align="center"><b>🔧 Open Hardware</b><br><sub>Open schematic / PCB<br>Ready for further development</sub></td>
 </tr>

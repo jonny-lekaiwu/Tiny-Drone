@@ -6,7 +6,7 @@
 <table>
 <tr>
 <td width="25%" align="center"><b>📷 Wi-Fi 图传</b><br><sub>实时视频传输<br>边飞边看</sub></td>
-<td width="25%" align="center"><b>🎮 多种控制</b><br><sub>Android App · Web 浏览器<br>遥控器（ESP32-C3）</sub></td>
+<td width="25%" align="center"><b>🎮 多种控制</b><br><sub>Android App · Web 浏览器<br>实体遥控器</sub></td>
 <td width="25%" align="center"><b>📡 RID 广播</b><br><sub>支持 RID 广播<br>实名登记与激活</sub></td>
 <td width="25%" align="center"><b>🔧 开放硬件</b><br><sub>原理图 / PCB 开放<br>支持二次开发</sub></td>
 </tr>
