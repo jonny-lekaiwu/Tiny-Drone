@@ -1,25 +1,16 @@
 <div align="center">
 
-# Tiny-Drone
-
-**Language**
-
 <table>
 <tr>
 <td align="center" width="50%"><a href="README.md"><b>简体中文 →</b></a></td>
 <td align="center" width="50%"><b>English ✓</b></td>
 </tr>
-</table>
-
-<br>
-
-<img src="assets/TinyDrone/tiny-drone-overview.jpg" alt="Tiny-Drone" width="320">
-
+</table> 
 </div>
 
 ---
 
-## ✨ What Tiny-Drone Can Do
+## ✨ Tiny-Drone
 
 <table>
 <tr>
@@ -89,7 +80,7 @@ In addition to the Android App and web browser, Tiny-Drone supports a dedicated 
 <a href="https://oshwhub.com/xiaochen_study/project_nchmaogv"><b>Build the Controller →</b></a>
 </td>
 <td width="58%" align="center" valign="middle">
-<img src="assets/TinyDrone/tiny-drone-controller.webp" alt="Tiny-Drone physical controller" width="520">
+<img src="assets/TinyDrone/tiny-drone-controller.webp" alt="Tiny-Drone physical controller" width="220">
 </td>
 </tr>
 </table>
@@ -285,7 +276,7 @@ Indoor testing in a safe environment is recommended first. Before flying outdoor
 <details open>
 <summary><b>The propellers spin, but the drone cannot take off</b></summary>
 <br>Check that the propeller type, rotation direction, and installation position are correct.
-<br><br><div align="center"><img src="assets/TinyDrone/propeller-installation.png" width="520"></div>
+<br><br><div align="center"><img src="assets/TinyDrone/propeller-installation.png" width="220"></div>
 </details>
 
 ---

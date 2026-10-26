@@ -1,25 +1,16 @@
 <div align="center">
 
-# Tiny-Drone
-
-**语言 / Language**
-
 <table>
 <tr>
 <td align="center" width="50%"><b>简体中文 ✓</b></td>
 <td align="center" width="50%"><a href="README_EN.md"><b>English →</b></a></td>
 </tr>
-</table>
-
-<br>
-
-<img src="assets/TinyDrone/tiny-drone-overview.jpg" alt="Tiny-Drone" width="320">
-
+</table> 
 </div>
 
 ---
 
-## ✨ Tiny-Drone 能做什么
+## ✨ Tiny-Drone
 
 <table>
 <tr>
@@ -88,7 +79,7 @@ Wi-Fi    TINY-DRONE_XXXXXXXXXXXX
 <a href="https://oshwhub.com/xiaochen_study/project_nchmaogv"><b>复刻实体遥控器 →</b></a>
 </td>
 <td width="58%" align="center" valign="middle">
-<img src="assets/TinyDrone/tiny-drone-controller.webp" alt="Tiny-Drone 实体遥控器" width="520">
+<img src="assets/TinyDrone/tiny-drone-controller.webp" alt="Tiny-Drone 实体遥控器" width="220">
 </td>
 </tr>
 </table>
@@ -154,7 +145,7 @@ Wi-Fi    TINY-DRONE_XXXXXXXXXXXX
 <table>
 <tr>
 <td width="50%"><img src="assets/TinyDrone/tiny-drone-photo-1.jpg" width="100%"></td>
-<td width="50%"><img src="assets/TinyDrone/tiny-drone-photo-2.jpg" width="100%"></td>
+<td width="70%"><img src="assets/TinyDrone/tiny-drone-photo-2.jpg" width="100%"></td>
 </tr>
 <tr>
 <td><img src="assets/TinyDrone/tiny-drone-photo-3.jpg" width="100%"></td>
@@ -284,7 +275,7 @@ idf.py flash monitor -p COMX
 <details open>
 <summary><b>桨叶转动，但无人机无法起飞</b></summary>
 <br>检查桨叶型号、方向和安装位置是否正确。
-<br><br><div align="center"><img src="assets/TinyDrone/propeller-installation.png" width="520"></div>
+<br><br><div align="center"><img src="assets/TinyDrone/propeller-installation.png" width="320"></div>
 </details>
 
 ---
