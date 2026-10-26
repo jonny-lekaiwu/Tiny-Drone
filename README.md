@@ -7,7 +7,7 @@
 <table>
 <tr>
 <td align="center" width="50%"><b>简体中文 ✓</b></td>
-<td align="center" width="50%"><a href="README_EN.md"><b>English · Switch to English →</b></a></td>
+<td align="center" width="50%"><a href="README_EN.md"><b>English →</b></a></td>
 </tr>
 </table>
 

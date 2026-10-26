@@ -6,8 +6,8 @@
 
 <table>
 <tr>
-<td align="center" width="50%"><a href="README.md"><b>简体中文 · Switch to Chinese →</b></a></td>
-<td align="center" width="50%"><b>English · Current page ✓</b></td>
+<td align="center" width="50%"><a href="README.md"><b>简体中文 →</b></a></td>
+<td align="center" width="50%"><b>English ✓</b></td>
 </tr>
 </table>
 
