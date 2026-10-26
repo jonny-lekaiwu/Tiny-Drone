@@ -6,7 +6,7 @@
 <table>
 <tr>
 <td width="25%" align="center"><b>📷 Wi-Fi 图传</b><br><sub>实时视频传输<br>边飞边看</sub></td>
-<td width="25%" align="center"><b>🎮 多种控制</b><br><sub>Android App · Web 浏览器<br>实体遥控器（ESP32-C3）</sub></td>
+<td width="25%" align="center"><b>🎮 多种控制</b><br><sub>Android App · Web 浏览器<br>遥控器（ESP32-C3）</sub></td>
 <td width="25%" align="center"><b>📡 RID 广播</b><br><sub>支持 RID 广播<br>实名登记与激活</sub></td>
 <td width="25%" align="center"><b>🔧 开放硬件</b><br><sub>原理图 / PCB 开放<br>支持二次开发</sub></td>
 </tr>
@@ -67,20 +67,20 @@ Wi-Fi    TINY-DRONE_XXXXXXXXXXXX
 </tr>
 </table>
 
-### 实体遥控器
+### 配套遥控器
 
-除了 Android App 和手机浏览器，Tiny-Drone 还支持配套的 **Tiny-Drone 开源实体遥控器**。遥控器基于 **ESP32-C3**，配备双摇杆和彩色屏幕，可以直接连接无人机热点进行操控，并在屏幕上查看兼容的 Wi-Fi 图传和飞行状态。
+除了 Android App 和手机浏览器，Tiny-Drone 还支持配套的 **Tiny-Drone 开源遥控器**。遥控器基于 **ESP32-C3**，配备双摇杆和彩色屏幕，可以直接连接无人机热点进行操控，并在屏幕上查看兼容的 Wi-Fi 图传和飞行状态。
 
 <table>
 <tr>
 <td width="42%" align="center" valign="middle">
-<b>🎮 Tiny-Drone 实体遥控器</b><br><br>
+<b>🎮 Tiny-Drone 遥控器</b><br><br>
 <sub>ESP32-C3 · 双摇杆 · 320×240 横屏显示 · Wi-Fi 图传</sub><br><br>
-<a href="https://github.com/jonny-lekaiwu/Tiny-Drone-Controller"><b>查看遥控器开源项目 →</b></a><br><br>
-<a href="https://oshwhub.com/xiaochen_study/project_nchmaogv"><b>复刻实体遥控器 →</b></a>
+<a href="https://github.com/jonny-lekaiwu/Tiny-Drone-Controller"><b>查看遥控器源代码 →</b></a><br><br>
+<a href="https://oshwhub.com/xiaochen_study/project_nchmaogv"><b>复刻遥控器 →</b></a>
 </td>
 <td width="58%" align="center" valign="middle">
-<img src="assets/TinyDrone/tiny-drone-controller.webp" alt="Tiny-Drone 实体遥控器" width="320">
+<img src="assets/TinyDrone/tiny-drone-controller.webp" alt="Tiny-Drone 遥控器" width="320">
 </td>
 </tr>
 </table>
@@ -269,8 +269,8 @@ idf.py flash monitor -p COMX
 
 - [**Tiny-Drone 源代码 →**](https://github.com/jonny-lekaiwu/Tiny-Drone) — 无人机固件与项目源码
 - [**Android App →**](https://github.com/jonny-lekaiwu/ESP-Drone-Android) — Android 控制端源码
-- [**Tiny-Drone 实体遥控器 →**](https://github.com/jonny-lekaiwu/Tiny-Drone-Controller) — ESP32-C3 双摇杆带屏遥控器源码
-- [**复刻实体遥控器 →**](https://oshwhub.com/xiaochen_study/project_nchmaogv) — 遥控器原理图、PCB 与硬件工程
+- [**Tiny-Drone 遥控器 →**](https://github.com/jonny-lekaiwu/Tiny-Drone-Controller) — ESP32-C3 双摇杆带屏遥控器源码
+- [**复刻遥控器 →**](https://oshwhub.com/xiaochen_study/project_nchmaogv) — 遥控器原理图、PCB 与硬件工程
 - [**Tiny-Drone 硬件工程 →**](https://oshwhub.com/xiaochen_study/project_wsijdhkn) — 原理图、PCB、技术分享与项目讨论
 - [**Tiny-Drone 完整文档 →**](https://www.lekaiwu.cn/tiny-drone/) — 复刻步骤、硬件说明、视频与使用文档
 - [**在线烧录工具 →**](https://www.lekaiwu.cn/tools/firmware/) — 选择固件版本后通过 USB 自动烧录
