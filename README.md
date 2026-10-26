@@ -13,7 +13,7 @@
 
 <br>
 
-<img src="assets/TinyDrone/tiny-drone-overview.jpg" alt="Tiny-Drone" width="720">
+<img src="assets/TinyDrone/tiny-drone-overview.jpg" alt="Tiny-Drone" width="320">
 
 </div>
 
