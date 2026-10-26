@@ -27,6 +27,16 @@ Tiny-Drone（探秘者）是一款基于 **ESP32-S3** 开发的开源微型无�
 
 ---
 
+## 📸 实物展示
+<p align="center">
+  <img src="assets/TinyDrone/tiny-drone-photo-1.jpg" width="23%" alt="Tiny-Drone 实物图 1">
+  <img src="assets/TinyDrone/tiny-drone-photo-2.jpg" width="23%" alt="Tiny-Drone 实物图 2">
+  <img src="assets/TinyDrone/tiny-drone-photo-3.jpg" width="23%" alt="Tiny-Drone 实物图 3">
+  <img src="assets/TinyDrone/tiny-drone-photo-4.jpg" width="23%" alt="Tiny-Drone 实物图 4">
+</p>
+
+---
+
 ## 🎬 看它飞起来
 
 <div align="center">
@@ -79,7 +89,7 @@ Wi-Fi    TINY-DRONE_XXXXXXXXXXXX
 <a href="https://oshwhub.com/xiaochen_study/project_nchmaogv"><b>复刻实体遥控器 →</b></a>
 </td>
 <td width="58%" align="center" valign="middle">
-<img src="assets/TinyDrone/tiny-drone-controller.webp" alt="Tiny-Drone 实体遥控器" width="220">
+<img src="assets/TinyDrone/tiny-drone-controller.webp" alt="Tiny-Drone 实体遥控器" width="320">
 </td>
 </tr>
 </table>
@@ -136,19 +146,7 @@ Wi-Fi    TINY-DRONE_XXXXXXXXXXXX
 <img src="assets/TinyDrone/camera-circuit.png" width="620"><br><br>
 <img src="assets/TinyDrone/expansion-modules.png" width="520">
 </div>
-</details>
-
----
-
-## 📸 实物展示
-
-<p align="center">
-  <img src="assets/TinyDrone/tiny-drone-photo-1.jpg" width="23%" alt="Tiny-Drone 实物图 1">
-  <img src="assets/TinyDrone/tiny-drone-photo-2.jpg" width="23%" alt="Tiny-Drone 实物图 2">
-  <img src="assets/TinyDrone/tiny-drone-photo-3.jpg" width="23%" alt="Tiny-Drone 实物图 3">
-  <img src="assets/TinyDrone/tiny-drone-photo-4.jpg" width="23%" alt="Tiny-Drone 实物图 4">
-</p>
-
+</details> 
 ---
 
 ## 🛠️ 复刻 Tiny-Drone

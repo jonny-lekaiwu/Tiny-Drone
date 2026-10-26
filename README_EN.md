@@ -27,6 +27,17 @@ The software is released under the [GPL-3.0 License](LICENSE), and the [hardware
 
 ---
 
+## 📸 Tiny-Drone Gallery
+
+<p align="center">
+  <img src="assets/TinyDrone/tiny-drone-photo-1.jpg" width="23%" alt="Tiny-Drone 实物图 1">
+  <img src="assets/TinyDrone/tiny-drone-photo-2.jpg" width="23%" alt="Tiny-Drone 实物图 2">
+  <img src="assets/TinyDrone/tiny-drone-photo-3.jpg" width="23%" alt="Tiny-Drone 实物图 3">
+  <img src="assets/TinyDrone/tiny-drone-photo-4.jpg" width="23%" alt="Tiny-Drone 实物图 4">
+</p>
+
+---
+
 ## 🎬 See It Fly
 
 <div align="center">
@@ -80,7 +91,7 @@ In addition to the Android App and web browser, Tiny-Drone supports a dedicated 
 <a href="https://oshwhub.com/xiaochen_study/project_nchmaogv"><b>Build the Controller →</b></a>
 </td>
 <td width="58%" align="center" valign="middle">
-<img src="assets/TinyDrone/tiny-drone-controller.webp" alt="Tiny-Drone physical controller" width="220">
+<img src="assets/TinyDrone/tiny-drone-controller.webp" alt="Tiny-Drone physical controller" width="320">
 </td>
 </tr>
 </table>
@@ -138,17 +149,6 @@ In addition to the Android App and web browser, Tiny-Drone supports a dedicated 
 <img src="assets/TinyDrone/expansion-modules.png" width="520">
 </div>
 </details>
-
----
-
-## 📸 Tiny-Drone Gallery
-
-<p align="center">
-  <img src="assets/TinyDrone/tiny-drone-photo-1.jpg" width="23%" alt="Tiny-Drone 实物图 1">
-  <img src="assets/TinyDrone/tiny-drone-photo-2.jpg" width="23%" alt="Tiny-Drone 实物图 2">
-  <img src="assets/TinyDrone/tiny-drone-photo-3.jpg" width="23%" alt="Tiny-Drone 实物图 3">
-  <img src="assets/TinyDrone/tiny-drone-photo-4.jpg" width="23%" alt="Tiny-Drone 实物图 4">
-</p>
 
 ---
 
