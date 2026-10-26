@@ -180,7 +180,7 @@ Wi-Fi    TINY-DRONE_XXXXXXXXXXXX
 
 按照 BOM 清单购买元器件，也可以直接购买[物料包](https://item.taobao.com/item.htm?ft=t&id=1080586148318)。ZY-MPU6050 和 OV2640 建议选择经过测试的产品。
 
-<div align="center"><img src="assets/TinyDrone/components-and-materials.jpg" alt="元器件与物料" width="720"></div>
+<div align="center"><img src="assets/TinyDrone/components-and-materials.png" alt="元器件与物料" width="720"></div>
 
 ### 02 · PCB 打板与硬件组装
 

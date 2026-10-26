@@ -181,7 +181,7 @@ In addition to the Android App and web browser, Tiny-Drone supports a dedicated 
 
 Purchase the components according to the BOM. A [parts kit](https://item.taobao.com/item.htm?ft=t&id=1080586148318) is also available. Tested ZY-MPU6050 and OV2640 modules are recommended.
 
-<div align="center"><img src="assets/TinyDrone/components-and-materials.jpg" alt="Tiny-Drone components" width="720"></div>
+<div align="center"><img src="assets/TinyDrone/components-and-materials.png" alt="Tiny-Drone components" width="720"></div>
 
 ### 02 · Order the PCB and Assemble the Hardware
 
