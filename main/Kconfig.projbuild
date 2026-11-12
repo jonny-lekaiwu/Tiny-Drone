@@ -61,7 +61,7 @@ menu "Tiny_Drone Config"
  
         config REMOTE_ID_ENABLE
             bool "Enable remote identification broadcast"
-            default y
+            default n
             help
                 Broadcast the device product ID and the registration ID saved
                 by USB activation. Unactivated devices send an empty registration ID.
