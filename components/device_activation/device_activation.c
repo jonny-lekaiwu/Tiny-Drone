@@ -13,6 +13,8 @@
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_efuse.h"
+#include "esp_efuse_table.h"
 #include "nvs.h"
 
 #include "web_ota.h"
@@ -20,7 +22,6 @@
 #define LINE_BYTES 256
 #define RECORD_VERSION 1 
 
-/* One NVS blob prevents mixing old and new fields after interrupted writes. */
 typedef struct {
     uint8_t version;
     char certificate[37];
@@ -32,6 +33,7 @@ static const char *TAG = "activation";
 static activation_record_t record;
 static bool activated;
 static bool restart_after_activation;
+static bool deactivation_pending;
 
 bool deviceActivationIsActive(void) { return activated; }
 const char *deviceActivationProductId(void) { return record.product; }
@@ -79,39 +81,73 @@ static bool valid_record(const activation_record_t *r)
            uppercase_alnum(r->uas + 3);
 }
 
+typedef struct {
+    uint8_t version;
+    char certificate[37];
+    char uas[12];
+} registration_record_t;
+
+/* Store the full serial and its terminator, below CUSTOM_MAC at byte 25. */
+static esp_err_t lock_product_id(const char *product)
+{
+    char stored[32];
+    const char empty[32] = {0};
+    esp_err_t err = esp_efuse_read_field_blob(ESP_EFUSE_USER_DATA, stored, sizeof(stored) * 8);
+    if (err != ESP_OK) return err;
+    bool locked = esp_efuse_read_field_bit(ESP_EFUSE_WR_DIS_BLOCK_USR_DATA);
+    if (memcmp(stored, product, 21)) {
+        if (locked || memcmp(stored, empty, sizeof(stored))) return ESP_ERR_INVALID_STATE;
+        err = esp_efuse_write_field_blob(ESP_EFUSE_USER_DATA, product, 21 * 8);
+        if (err != ESP_OK) return err;
+        err = esp_efuse_read_field_blob(ESP_EFUSE_USER_DATA, stored, sizeof(stored) * 8);
+        if (err != ESP_OK) return err;
+        if (memcmp(stored, product, 21)) return ESP_FAIL;
+    }
+    if (memcmp(stored + 21, empty, sizeof(stored) - 21)) return ESP_ERR_INVALID_STATE;
+    if (!locked) {
+        err = esp_efuse_set_write_protect(EFUSE_BLK3);
+        if (err != ESP_OK) return err;
+        if (!esp_efuse_read_field_bit(ESP_EFUSE_WR_DIS_BLOCK_USR_DATA)) return ESP_FAIL;
+    }
+    return ESP_OK;
+}
+
 static void load_record(void)
 {
+    memset(&record, 0, sizeof(record));
+    activated = false;
+    deactivation_pending = false;
+    char product[21];
+    if (!esp_efuse_read_field_bit(ESP_EFUSE_WR_DIS_BLOCK_USR_DATA) ||
+        esp_efuse_read_field_blob(ESP_EFUSE_USER_DATA, product, sizeof(product) * 8) != ESP_OK ||
+        product[20] != '\0' || !valid_product_id(product)) return;
+    memcpy(record.product, product, sizeof(product));
+
     nvs_handle_t h;
     if (nvs_open("uom", NVS_READONLY, &h) != ESP_OK) return;
-    size_t size = sizeof(record);
-    esp_err_t err = nvs_get_blob(h, "record", &record, &size);
-    if (err == ESP_ERR_NVS_NOT_FOUND) {
-        /* Accept the prototype's existing NVS only when it belongs to this chip. */
-        uint8_t active = 0;
-        size_t cert_len = sizeof(record.certificate), product_len = sizeof(record.product);
-        size_t uas_len = sizeof(record.uas);
-        record.version = RECORD_VERSION;
-        err = nvs_get_u8(h, "activated", &active);
-        if (err == ESP_OK && active == 1) {
-            err = nvs_get_str(h, "cert_id", record.certificate, &cert_len);
-            if (err == ESP_OK) err = nvs_get_str(h, "upic_msn", record.product, &product_len);
-            if (err == ESP_OK) err = nvs_get_str(h, "uas_code", record.uas, &uas_len);
-        } else err = ESP_ERR_INVALID_STATE;
-    }
+    registration_record_t stored;
+    size_t size = sizeof(stored);
+    esp_err_t err = nvs_get_blob(h, "record", &stored, &size);
     nvs_close(h);
-    activated = err == ESP_OK && size == sizeof(record) && valid_record(&record);
-    if (!activated)
-    { 
-        memset(&record, 0, sizeof(record));
-    } 
+    if (err != ESP_OK || size != sizeof(stored)) return;
+    record.version = stored.version;
+    memcpy(record.certificate, stored.certificate, sizeof(stored.certificate));
+    memcpy(record.uas, stored.uas, sizeof(stored.uas));
+    activated = valid_record(&record);
 }
 
 static esp_err_t save_record(const activation_record_t *r)
 {
-    nvs_handle_t h;
-    esp_err_t err = nvs_open("uom", NVS_READWRITE, &h);
+    esp_err_t err = lock_product_id(r->product);
     if (err != ESP_OK) return err;
-    err = nvs_set_blob(h, "record", r, sizeof(*r));
+
+    registration_record_t stored = {.version = r->version};
+    memcpy(stored.certificate, r->certificate, sizeof(stored.certificate));
+    memcpy(stored.uas, r->uas, sizeof(stored.uas));
+    nvs_handle_t h;
+    err = nvs_open("uom", NVS_READWRITE, &h);
+    if (err != ESP_OK) return err;
+    err = nvs_set_blob(h, "record", &stored, sizeof(stored));
     if (err == ESP_OK) err = nvs_commit(h);
     nvs_close(h);
     return err;
@@ -152,6 +188,12 @@ static void handle_activate(char *args)
     strcpy(next.certificate, fields[0]);
     strcpy(next.product, fields[1]);
     strcpy(next.uas, fields[2]);
+    if (deactivation_pending) {
+        send_line("ERROR:请先断电重启设备"); return;
+    }
+    if (record.product[0] && strcmp(record.product, next.product)) {
+        send_line("ERROR:产品序列号与设备锁定的序列号不符"); return;
+    }
     if (activated) {
         /* Never rewrite identity or remotely reboot a flight-enabled device. */
         if (strcmp(record.certificate, next.certificate) || strcmp(record.uas, next.uas)) {
@@ -171,21 +213,44 @@ static void handle_activate(char *args)
     }
 }
 
+static void handle_deactivate(const char *product)
+{
+    if (!activated || strcmp(product, record.product)) {
+        send_line("ERROR:设备未激活或产品序列号不符"); return;
+    }
+    if (!deactivation_pending) {
+        nvs_handle_t h;
+        esp_err_t err = nvs_open("uom", NVS_READWRITE, &h);
+        if (err == ESP_OK) {
+            err = nvs_erase_key(h, "record");
+            if (err == ESP_OK || err == ESP_ERR_NVS_NOT_FOUND) err = nvs_commit(h);
+            nvs_close(h);
+        }
+        if (err != ESP_OK) { send_line("ERROR:清除登记信息失败"); return; }
+        /* Keep the current flight state until the operator power cycles the device. */
+        deactivation_pending = true;
+    }
+    send_line("+DEACTIVATE:RESTART_REQUIRED");
+    send_line("OK");
+}
+
 static void handle_command(char *line)
 {
     if (!strcmp(line, "AT") || !strcmp(line, "AT+PING")) send_line("OK");
     else if (!strcmp(line, "AT+HELLO")) {
         char response[160];
-        snprintf(response, sizeof(response), "+HELLO:%s|usb_serial_jtag|Tiny-Drone-%s|%u|%s|%s",
+        snprintf(response, sizeof(response), "+HELLO:%s|usb_serial_jtag|Tiny-Drone-%s|%u|%s|%s|%s",
 #if CONFIG_IDF_TARGET_ESP32S3
                  "ESP32-S3",
 #else
                  "ESP32-C3",
 #endif
-                 CONFIG_FIRMWARE_VERSION,activated ? 1 : 0, record.product, activated ? record.uas : "-");
+                 CONFIG_FIRMWARE_VERSION,activated ? 1 : 0, record.product, activated ? record.uas : "-",
+                 deactivation_pending ? "deactivation_pending" : "deactivate");
         send_line(response);
         send_line("OK");
     } else if (!strncmp(line, "AT+ACTIVATE=", 12)) handle_activate(line + 12);
+    else if (!strncmp(line, "AT+DEACTIVATE=", 14)) handle_deactivate(line + 14);
     else send_line("ERROR:不支持的命令");
 }
 

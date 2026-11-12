@@ -1,6 +1,6 @@
 """Host regression tests for the real activation C implementation (requires GCC).
 
-Mocks ESP-IDF IO/NVS only; no device is connected or flashed.
+Mocks ESP-IDF IO/NVS/eFuse only; no device is connected or flashed.
 Run: python scripts/test_activation.py
 """
 from pathlib import Path
@@ -12,16 +12,20 @@ STUB = r'''
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 typedef int esp_err_t;
 typedef int nvs_handle_t;
 #define ESP_OK 0
 #define ESP_ERR_NVS_NOT_FOUND 1
 #define ESP_ERR_INVALID_STATE 2
 #define ESP_ERR_NO_MEM 3
+#define ESP_FAIL 4
+#define EFUSE_BLK3 3
 #define NVS_READONLY 0
 #define NVS_READWRITE 1
 #define ESP_MAC_EFUSE_FACTORY 0
 #define CONFIG_IDF_TARGET_ESP32S3 1
+#define CONFIG_FIRMWARE_VERSION "test"
 #define CONFIG_VFS_SUPPORT_IO 1
 #ifndef CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG_ENABLED
 #define CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG_ENABLED 1
@@ -42,16 +46,25 @@ int nvs_open(const char *, int, nvs_handle_t *);
 void nvs_close(nvs_handle_t);
 int nvs_get_blob(nvs_handle_t, const char *, void *, size_t *);
 int nvs_set_blob(nvs_handle_t, const char *, const void *, size_t);
-int nvs_get_str(nvs_handle_t, const char *, char *, size_t *);
-int nvs_get_u8(nvs_handle_t, const char *, uint8_t *);
+int nvs_erase_key(nvs_handle_t, const char *);
+typedef int esp_efuse_desc_t;
+extern const esp_efuse_desc_t *ESP_EFUSE_USER_DATA[], *ESP_EFUSE_WR_DIS_BLOCK_USR_DATA[];
+int esp_efuse_read_field_blob(const esp_efuse_desc_t **, void *, size_t);
+bool esp_efuse_read_field_bit(const esp_efuse_desc_t **);
+int esp_efuse_write_field_blob(const esp_efuse_desc_t **, const void *, size_t);
+int esp_efuse_set_write_protect(int);
 int nvs_commit(nvs_handle_t);
 '''
 TEST = r'''
 #include <assert.h>
 #include "device_activation.c"
 
-static activation_record_t stored, pending;
-static int present, legacy, writes, restarts, fail_write, fail_commit;
+static registration_record_t stored, pending;
+static int present, writes, restarts, fail_write, fail_commit;
+static char efuse[32];
+static bool locked, erase_pending, fail_lock;
+static int burns;
+const esp_efuse_desc_t *ESP_EFUSE_USER_DATA[1], *ESP_EFUSE_WR_DIS_BLOCK_USR_DATA[1];
 static char output[8192];
 static size_t output_used;
 static void (*delay_hook)(int);
@@ -70,7 +83,7 @@ int xTaskCreate(void (*f)(void *), const char *n, int s, void *a, int p, void *h
 void vTaskDelay(int t) { if (delay_hook) delay_hook(t); }
 void esp_restart(void) { ++restarts; }
 int esp_read_mac(uint8_t *m, int t) { (void)t; const uint8_t mac[] = {1,2,3,4,5,6}; memcpy(m,mac,6); return 0; }
-int nvs_open(const char *s, int m, nvs_handle_t *h) { (void)m; assert(!strcmp(s,"uom")); *h=1; return 0; }
+int nvs_open(const char *s, int m, nvs_handle_t *h) { (void)m; assert(!strcmp(s,"uom")); erase_pending=false; *h=1; return 0; }
 void nvs_close(nvs_handle_t h) { (void)h; }
 int nvs_get_blob(nvs_handle_t h, const char *k, void *p, size_t *n) {
     (void)h; assert(!strcmp(k,"record")); if (!present) return ESP_ERR_NVS_NOT_FOUND;
@@ -81,12 +94,33 @@ int nvs_set_blob(nvs_handle_t h, const char *k, const void *p, size_t n) {
     if (fail_write) return ESP_ERR_NO_MEM;
     memcpy(&pending,p,n); return 0;
 }
-int nvs_commit(nvs_handle_t h) { (void)h; if (fail_commit) return ESP_ERR_NO_MEM; stored=pending; present=1; return 0; }
-int nvs_get_u8(nvs_handle_t h, const char *k, uint8_t *p) { (void)h; (void)k; *p=legacy; return legacy ? 0 : 1; }
-int nvs_get_str(nvs_handle_t h, const char *k, char *p, size_t *n) {
-    (void)h; if (!legacy) return 1;
-    const char *s = !strcmp(k,"cert_id") ? stored.certificate : !strcmp(k,"upic_msn") ? stored.product : stored.uas;
-    assert(strlen(s)<*n); strcpy(p,s); *n=strlen(s)+1; return 0;
+int nvs_commit(nvs_handle_t h) {
+    (void)h; if (fail_commit) return ESP_ERR_NO_MEM;
+    if (erase_pending) present=0;
+    else { stored=pending; present=1; }
+    return ESP_OK;
+}
+int nvs_erase_key(nvs_handle_t h, const char *key) {
+    (void)h; assert(!strcmp(key,"record")); erase_pending=true;
+    return present ? ESP_OK : ESP_ERR_NVS_NOT_FOUND;
+}
+int esp_efuse_read_field_blob(const esp_efuse_desc_t **field, void *data, size_t bits) {
+    assert(field == ESP_EFUSE_USER_DATA && (bits == 256 || bits == 168));
+    memcpy(data, efuse, bits / 8); return ESP_OK;
+}
+bool esp_efuse_read_field_bit(const esp_efuse_desc_t **field) {
+    assert(field == ESP_EFUSE_WR_DIS_BLOCK_USR_DATA); return locked;
+}
+int esp_efuse_write_field_blob(const esp_efuse_desc_t **field, const void *data, size_t bits) {
+    const char empty[sizeof(efuse)]={0};
+    assert(field == ESP_EFUSE_USER_DATA && bits == 168 && !locked && !memcmp(efuse, empty, sizeof(efuse)));
+    ++burns;
+    memcpy(efuse, data, bits / 8); return ESP_OK;
+}
+int esp_efuse_set_write_protect(int block) {
+    assert(block == EFUSE_BLK3 && !locked);
+    if (fail_lock) return ESP_FAIL;
+    locked=true; return ESP_OK;
 }
 static void command(const char *s) {
     output_used=0; output[0]=0;
@@ -94,7 +128,7 @@ static void command(const char *s) {
     receive_byte('\r'); receive_byte('\n');
 }
 #define CERT "12345678-1234-4234-8234-123456789abc"
-#define PRODUCT "DY00TD00010203040506"
+#define PRODUCT "DY00K9Y7R4T6M2X8V3Q5"
 #define VALID "AT+ACTIVATE=" CERT "|" PRODUCT "|UAS1234ABCD|正常"
 static void rejected(const char *s) {
     int w=writes, r=restarts; command(s);
@@ -106,10 +140,10 @@ int main(void) {
     test_motor_gates();
     test_activation_alarm();
     test_rid_fields(false);
-    assert(!strcmp(deviceActivationProductId(),PRODUCT));
-    command("AT+HELLO"); assert(strstr(output,"|0|" PRODUCT "|-"));
+    assert(!strcmp(deviceActivationProductId(),""));
+    command("AT+HELLO"); assert(strstr(output,"|0||-|deactivate"));
     rejected("AT+ACTIVATE=|" PRODUCT "|UAS1234ABCD|正常");
-    rejected("AT+ACTIVATE=" CERT "|DY00TD00010203040507|UAS1234ABCD|正常");
+    rejected("AT+ACTIVATE=" CERT "|DY00-invalid|UAS1234ABCD|正常");
     rejected("AT+ACTIVATE=" CERT "|" PRODUCT "|UAS1234abcd|正常");
     rejected("AT+ACTIVATE=" CERT "|" PRODUCT "|UAS1234ABCD|注销");
     rejected(VALID "|");
@@ -119,25 +153,41 @@ int main(void) {
     rejected(long_line); command("AT+PING"); assert(strstr(output,"OK"));
     output_used=0; receive_byte('X'); receive_byte(0);
     const char *s=VALID; while (*s) receive_byte((uint8_t)*s++); receive_byte('\r');
-    assert(!present && !restarts);
+    assert(!present && !restarts && !burns);
+    efuse[25]=1; rejected(VALID); assert(!burns); efuse[25]=0;
+    fail_lock=true; rejected(VALID); assert(burns==1 && !locked); fail_lock=false;
     fail_write=1; command(VALID); assert(strstr(output,"ERROR:") && !restarts && !present); fail_write=0;
+    assert(locked && burns==1 && !strcmp(efuse,PRODUCT));
     fail_commit=1; command(VALID); assert(strstr(output,"ERROR:") && !restarts && !present); fail_commit=0;
     command(VALID); assert(strstr(output,"+ACTIVATE:" PRODUCT "|UAS1234ABCD|正常"));
     assert(restarts==ENABLE_ACTIVATION_MOTOR_LOCK && present && !deviceActivationIsActive());
     load_record(); assert(deviceActivationIsActive());
     test_rid_fields(true);
     assert(!strcmp(deviceActivationRegistrationId(),"1234ABCD"));
-    command("AT+HELLO"); assert(strstr(output,"|1|" PRODUCT "|UAS1234ABCD"));
-    int w=writes; command(VALID); assert(strstr(output,"+ACTIVATE:") && writes==w && restarts==ENABLE_ACTIVATION_MOTOR_LOCK);
+    command("AT+HELLO"); assert(strstr(output,"|1|" PRODUCT "|UAS1234ABCD|deactivate"));
+    int w=writes;
+    command(VALID); assert(strstr(output,"+ACTIVATE:") && writes==w && restarts==ENABLE_ACTIVATION_MOTOR_LOCK);
+    command("AT+ACTIVATE=" CERT "|DY00K9Y7R4T6M2X8V3Q6|UAS1234ABCD|正常");
+    assert(strstr(output,"ERROR:") && writes==w);
+    command("AT+DEACTIVATE=DY00K9Y7R4T6M2X8V3Q6");
+    assert(strstr(output,"ERROR:") && present);
+    fail_commit=1;
+    command("AT+DEACTIVATE=" PRODUCT);
+    assert(strstr(output,"ERROR:") && present && !deactivation_pending);
+    fail_commit=0;
+    command("AT+DEACTIVATE=" PRODUCT);
+    assert(strstr(output,"+DEACTIVATE:RESTART_REQUIRED") && !present && deviceActivationIsActive());
+    command(VALID); assert(strstr(output,"ERROR:") && !present);
+    load_record(); assert(!deviceActivationIsActive() && !strcmp(deviceActivationProductId(),PRODUCT));
+    command("AT+HELLO"); assert(strstr(output,"|0|" PRODUCT "|-|deactivate"));
+    rejected("AT+ACTIVATE=" CERT "|DY00K9Y7R4T6M2X8V3Q6|UAS1234ABCD|正常");
     command("AT+ACTIVATE=" CERT "|" PRODUCT "|UAS8765DCBA|正常");
-    assert(strstr(output,"ERROR:") && writes==w && restarts==ENABLE_ACTIVATION_MOTOR_LOCK);
-    activation_record_t good=stored;
-    stored.product[19]='7'; load_record(); assert(!deviceActivationIsActive());
-    stored=good; stored.uas[11]='X'; load_record(); assert(!deviceActivationIsActive());
-    stored=good; stored.version=2; load_record(); assert(!deviceActivationIsActive());
-    stored=good; present=0; legacy=1; load_record(); assert(deviceActivationIsActive());
-    stored.product[19]='7'; load_record(); assert(!deviceActivationIsActive());
-    printf("PASS (motor lock=%d, USB console=%d): activation, NVS failures, identity binding, motor/arming gates, throttle alarm, fixed tone, RID identity fields\n", ENABLE_ACTIVATION_MOTOR_LOCK, CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG_ENABLED);
+    assert(strstr(output,"+ACTIVATE:") && burns==1 && present);
+    load_record(); assert(deviceActivationIsActive() && !strcmp(deviceActivationRegistrationId(),"8765DCBA"));
+    present=0; load_record(); assert(!deviceActivationIsActive() && !strcmp(deviceActivationProductId(),PRODUCT));
+    command(VALID); assert(strstr(output,"+ACTIVATE:") && burns==1 && present);
+    stored.uas[11]='X'; load_record(); assert(!deviceActivationIsActive());
+    printf("PASS (motor lock=%d, USB console=%d): eFuse serial, NVS failures/erase, deactivation, RID fields and motor gates\n", ENABLE_ACTIVATION_MOTOR_LOCK, CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG_ENABLED);
     return 0;
 }
 '''
@@ -296,7 +346,8 @@ RID += r'''
 static void test_rid_fields(bool active) {
     uint8_t packet[100]; memset(packet,0xaa,sizeof(packet));
     assert(build_gb46750_packet(packet)==72);
-    assert(!memcmp(packet+6,PRODUCT,20));
+    const uint8_t empty_product[20]={0};
+    assert(!memcmp(packet+6,active ? (const uint8_t *)PRODUCT : empty_product,20));
     const uint8_t empty[8]={0};
     assert(!memcmp(packet+26,active ? (const uint8_t *)"1234ABCD" : empty,8));
     assert(packet[72]==0xaa);
@@ -308,7 +359,7 @@ with tempfile.TemporaryDirectory(prefix="tinydrone-activation-") as temp:
     folder = Path(temp)
     (folder / "stub.h").write_text(STUB, encoding="utf-8")
     for name in ["esp_err.h", "driver/usb_serial_jtag.h", "driver/usb_serial_jtag_vfs.h", "esp_log.h", "esp_mac.h",
-                 "esp_system.h", "freertos/FreeRTOS.h", "freertos/task.h", "nvs.h", "sdkconfig.h"]:
+                 "esp_system.h", "freertos/FreeRTOS.h", "freertos/task.h", "nvs.h", "esp_efuse.h", "esp_efuse_table.h", "sdkconfig.h", "web_ota.h"]:
         header = folder / name
         header.parent.mkdir(parents=True, exist_ok=True)
         header.write_text('#include "stub.h"\n', encoding="utf-8")
