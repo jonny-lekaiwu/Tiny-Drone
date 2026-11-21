@@ -431,7 +431,17 @@ static int set_framesize(sensor_t *sensor, framesize_t framesize)
         goto fail;
     }
 
-    if (sensor->pixformat == PIXFORMAT_JPEG) {
+    if (sensor->pixformat == PIXFORMAT_JPEG &&
+            framesize == FRAMESIZE_QVGA && sensor->xclk_freq_hz == 20000000) {
+        ret = set_pll(sensor, false, 91, 1, 3, false, 2, true, 3)
+            || write_reg_bits(sensor->slv_addr, 0x3a00, 0x04, false)
+            || write_reg16(sensor->slv_addr, 0x3a02, 980)
+            || write_reg16(sensor->slv_addr, 0x3a14, 980)
+            || write_reg16(sensor->slv_addr, 0x3a08, 294)
+            || write_reg16(sensor->slv_addr, 0x3a0a, 245)
+            || write_reg(sensor->slv_addr, 0x3a0d, 4)
+            || write_reg(sensor->slv_addr, 0x3a0e, 3);
+    } else if (sensor->pixformat == PIXFORMAT_JPEG) {
         //10MHz PCLK
         uint8_t sys_mul = 200;
         if(framesize < FRAMESIZE_QVGA || sensor->xclk_freq_hz == 16000000){

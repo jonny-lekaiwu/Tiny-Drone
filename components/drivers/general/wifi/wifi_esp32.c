@@ -1056,8 +1056,16 @@ esp_err_t camera_init(void)
         return -1;
     }
 
-    #if 0
     sensor_t *s = esp_camera_sensor_get();
+    if (s && (s->id.PID == OV2640_PID || s->id.PID == OV3660_PID || s->id.PID == OV5640_PID))
+    {
+        ESP_LOGI(TAG, "OV%04X video: %ux%u, XCLK %u Hz, JPEG quality %d",
+                 (unsigned)s->id.PID,
+                 resolution[s->status.framesize].width,
+                 resolution[s->status.framesize].height,
+                 (unsigned)s->xclk_freq_hz, camera_config.jpeg_quality);
+    }
+    #if 0
   
     s->set_hmirror(s, 1); // 左右镜像
     s->set_vflip(s, 1);   // 上下翻转
@@ -1418,6 +1426,13 @@ static void udp_send_camera_fb_task(void *pvParameters)
 {
     int sock = -1;
     uint32_t frame_id = 0;
+    unsigned captured_frames = 0;
+    TickType_t capture_window_start = xTaskGetTickCount();
+    sensor_t *sensor = esp_camera_sensor_get();
+    bool fast_mode = sensor &&
+                     ((sensor->id.PID == OV2640_PID && sensor->xclk_freq_hz == 16000000) ||
+                      ((sensor->id.PID == OV3660_PID || sensor->id.PID == OV5640_PID) &&
+                       sensor->xclk_freq_hz == 20000000));
 
     struct sockaddr_in dest_addr = {0}; 
     
@@ -1584,6 +1599,22 @@ static void udp_send_camera_fb_task(void *pvParameters)
             MAX_PACKET_SIZE -
             sizeof(packet_header_t);
 
+        if (fast_mode)
+        {
+            captured_frames++;
+            TickType_t now = xTaskGetTickCount();
+            TickType_t elapsed = now - capture_window_start;
+            if (elapsed >= pdMS_TO_TICKS(2000))
+            {
+                ESP_LOGI(TAG, "OV%04X captured %u JPEG frames in %u ms, latest %u bytes",
+                         (unsigned)sensor->id.PID, captured_frames,
+                         (unsigned)(elapsed * portTICK_PERIOD_MS),
+                         (unsigned)fb->len);
+                captured_frames = 0;
+                capture_window_start = now;
+            }
+        }
+
         uint16_t total_packets =
             (fb->len + max_data_per_packet - 1) /
             max_data_per_packet;
@@ -1646,7 +1677,7 @@ static void udp_send_camera_fb_task(void *pvParameters)
                 /* High-quality JPEGs contain many more packets. Give lwIP a
                  * chance to release transmitted pbufs instead of filling the
                  * complete UDP send path in one uninterrupted burst. */
-                if ((seq & 3U) == 3U)
+                if (fast_mode ? seq + 1U < total_packets : (seq & 3U) == 3U)
                 {
                     vTaskDelay(1);
                 }
@@ -1673,6 +1704,8 @@ static void udp_send_camera_fb_task(void *pvParameters)
             esp_camera_fb_return(fb);
         }
  
+        frame_id++;
+
         if (send_failed)
         {
             if (send_errno == ENOMEM || send_errno == EAGAIN ||
@@ -1697,11 +1730,7 @@ static void udp_send_camera_fb_task(void *pvParameters)
             continue;
         }
 
-        frame_id++;
-
-        /* Keep capture starts 50 ms apart.  A plain 50 ms delay here made the
-         * true period equal to capture + packetisation + 50 ms. */
-        vTaskDelayUntil(&frame_start_tick, pdMS_TO_TICKS(50));
+        vTaskDelayUntil(&frame_start_tick, pdMS_TO_TICKS(fast_mode ? 33 : 50));
     }
 
     if (sock >= 0)

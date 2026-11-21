@@ -356,7 +356,10 @@ static int set_framesize(sensor_t *sensor, framesize_t framesize)
     }
 
     if (sensor->pixformat == PIXFORMAT_JPEG) {
-        if (framesize == FRAMESIZE_QXGA || sensor->xclk_freq_hz == 16000000) {
+        if (framesize == FRAMESIZE_QVGA && sensor->xclk_freq_hz == 20000000) {
+            ret = set_pll(sensor, false, 11, 1, 0, false, 0, true, 4)
+                || write_reg_bits(sensor->slv_addr, 0x3a00, 0x04, false);
+        } else if (framesize == FRAMESIZE_QXGA || sensor->xclk_freq_hz == 16000000) {
             //40MHz SYSCLK and 10MHz PCLK
             ret = set_pll(sensor, false, 24, 1, 3, false, 0, true, 8);
         } else {

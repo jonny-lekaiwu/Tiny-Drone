@@ -313,6 +313,23 @@ esp_err_t esp_camera_init(const camera_config_t *config)
         goto fail;
     }
 
+#if CONFIG_IDF_TARGET_ESP32S3
+    camera_config_t fast_config;
+    if ((s_state->sensor.id.PID == OV2640_PID || s_state->sensor.id.PID == OV3660_PID ||
+            s_state->sensor.id.PID == OV5640_PID) &&
+            config->pixel_format == PIXFORMAT_JPEG && config->frame_size == FRAMESIZE_QVGA) {
+        int xclk_mhz = s_state->sensor.id.PID == OV2640_PID ? 16 : 20;
+        err = s_state->sensor.set_xclk(&s_state->sensor, config->ledc_timer, xclk_mhz);
+        if (err != ESP_OK) {
+            goto fail;
+        }
+        fast_config = *config;
+        fast_config.xclk_freq_hz = xclk_mhz * 1000000;
+        fast_config.fb_count = 2;
+        config = &fast_config;
+    }
+#endif
+
     framesize_t frame_size = (framesize_t) config->frame_size;
     pixformat_t pix_format = (pixformat_t) config->pixel_format;
 
