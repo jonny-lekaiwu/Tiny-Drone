@@ -67,6 +67,7 @@ uint8_t remoteIdGetOperationState(void)
 static const char *TAG = "remote_id";
 
 #define RID_FRAME_MAX 160
+#define RID_BROADCAST_PERIOD_MS 900
 #define GB46750_CONTENT_LEN 66
 #define GB46750_PACKET_LEN (3 + 3 + GB46750_CONTENT_LEN)
 #define RID_UNKNOWN_POSITION ((int32_t)-1)
@@ -250,6 +251,7 @@ static void remote_id_task(void *arg)
     wifi_mode_t mode;
     while (esp_wifi_get_mode(&mode) != ESP_OK) vTaskDelay(pdMS_TO_TICKS(250));
 
+    TickType_t last_wake_time = xTaskGetTickCount();
     uint8_t counter = 0;
     for (;;) {
         receive_station_update();
@@ -257,7 +259,7 @@ static void remote_id_task(void *arg)
         uint16_t length = build_frame(frame, counter++);
         esp_err_t err = esp_wifi_80211_tx(WIFI_IF_AP, frame, length, true);
         if (err != ESP_OK) ESP_LOGW(TAG, "beacon transmit failed: %s", esp_err_to_name(err));
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        xTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(RID_BROADCAST_PERIOD_MS));
     }
 }
 #endif
