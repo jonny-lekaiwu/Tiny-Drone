@@ -35,9 +35,11 @@ Tiny-Drone（探秘者）是一款基于 **ESP32-S3** 开发的开源微型无�
 </div>
 
 ### 视频教程
-[**▶ 室内飞行演示**](https://www.bilibili.com/video/BV1T7th6gEEx/)
+- [**▶ 看室内试飞**](https://www.lekaiwu.cn/tiny-drone/#室内飞行)
+- [**▶ 散件焊接和组装**](https://www.lekaiwu.cn/tiny-drone/#套件焊接及组装教程)
+- [**▶ 装电机、桨叶、电池和起飞**](https://www.lekaiwu.cn/tiny-drone/#调试好的-组装和起飞操作教程)
 
-[**▶ 从零组装 Tiny-Drone**](https://www.bilibili.com/video/BV1CBtU6UEvK/)
+想以后回来查教程或看项目更新，可以点仓库右上角的 **☆ Star** 收藏。
 
 ---
 
@@ -155,7 +157,7 @@ Wi-Fi    TINY-DRONE_XXXXXXXXXXXX
 
 ### 01 · 准备元器件
 
-按照 BOM 清单购买元器件，也可以直接购买[物料包](https://item.taobao.com/item.htm?ft=t&id=1080586148318)。ZY-MPU6050 和 OV2640 建议选择经过测试的产品。
+按照 [**BOM 物料清单**](docs/BOM.md)购买元器件，也可以直接购买[物料包](https://item.taobao.com/item.htm?ft=t&id=1080586148318)。ZY-MPU6050 和 OV2640 建议选择经过测试的产品。
 
 <div align="center"><img src="assets/TinyDrone/components-and-materials.png" alt="元器件与物料" width="720"></div>
 
@@ -233,6 +235,13 @@ idf.py flash monitor -p COMX
 
 ## ❓ 故障排除
 
+详细检查步骤见 [**Tiny-Drone 使用与排障指南**](docs/Tiny-Drone_使用与排障.md)。
+
+- [打板时用不了免费打样券](docs/Tiny-Drone_使用与排障.md#打板时用不了免费打样券怎么办)
+- [插上 USB 后找不到 COM 口](docs/Tiny-Drone_使用与排障.md#usb-插上后找不到-com-口无法烧录)
+- [怎么烧录固件](docs/Tiny-Drone_使用与排障.md#怎么烧录固件)
+- [碰撞后 USB 和 Wi-Fi 都没反应](docs/Tiny-Drone_使用与排障.md#猛烈撞击后上电usb-和-wi-fi-都没反应)
+
 <details>
 <summary><b>打开电源后，拉油门没有反应</b></summary>
 <br>观察状态指示灯是否处于慢闪状态。可能是 MPU6050 未通过自检，请同时确认无人机是否保持水平。
@@ -246,6 +255,9 @@ idf.py flash monitor -p COMX
 <details>
 <summary><b>摄像头没有反应</b></summary>
 <br>检查日志确认摄像头是否初始化成功。若初始化成功，请检查信号线焊接，以及是否与 GND、3.3 V 或其他信号线短路。
+
+[查看摄像头排线座、供电和换件排查步骤](docs/Tiny-Drone_使用与排障.md#无法识别摄像头)
+
 </details>
 
 <details>
@@ -262,6 +274,9 @@ idf.py flash monitor -p COMX
 <summary><b>桨叶转动，但无人机无法起飞</b></summary>
 <br>检查桨叶型号、方向和安装位置是否正确。
 <br><br><div align="center"><img src="assets/TinyDrone/propeller-installation.png" width="320"></div>
+
+[查看飞不起来、起飞侧翻和飞行偏移的排查步骤](docs/Tiny-Drone_使用与排障.md#起飞问题)
+
 </details>
 
 ---
@@ -274,6 +289,8 @@ idf.py flash monitor -p COMX
 - [**复刻遥控器 →**](https://oshwhub.com/xiaochen_study/project_nchmaogv) — 遥控器原理图、PCB 与硬件工程
 - [**Tiny-Drone 硬件工程 →**](https://oshwhub.com/xiaochen_study/project_wsijdhkn) — 原理图、PCB、技术分享与项目讨论
 - [**Tiny-Drone 完整文档 →**](https://www.lekaiwu.cn/tiny-drone/) — 复刻步骤、硬件说明、视频与使用文档
+- [**实名登记与组装指南 →**](docs/Tiny-Drone%20实名登记与组装指南.md)
+- [**遥控器使用、解锁与固件更新 →**](docs/Tiny-Drone-Controller_README_解锁更新.md)
 - [**在线烧录工具 →**](https://www.lekaiwu.cn/tools/firmware/) — 选择固件版本后通过 USB 自动烧录
 - [**设备激活工具 →**](https://www.lekaiwu.cn/tools/device-activation/) — 实名登记后激活设备与 RID 相关功能
 
