@@ -159,7 +159,7 @@ static int set_window(sensor_t *sensor, ov2640_sensor_mode_t mode, int offset_x,
     };
 
     if (sensor->pixformat == PIXFORMAT_JPEG) {
-        c.clk_2x = 0;
+        c.clk_2x = sensor->xclk_freq_hz == 16000000 && mode == OV2640_MODE_SVGA;
         c.clk_div = 0;
         c.pclk_auto = 0;
         c.pclk_div = 8;
@@ -224,7 +224,10 @@ static int set_framesize(sensor_t *sensor, framesize_t framesize)
 
 
 
-    if (framesize <= FRAMESIZE_CIF) {
+    bool fast_qvga = framesize == FRAMESIZE_QVGA &&
+                     sensor->pixformat == PIXFORMAT_JPEG &&
+                     sensor->xclk_freq_hz == 16000000;
+    if (framesize <= FRAMESIZE_CIF && !fast_qvga) {
         mode = OV2640_MODE_CIF;
         max_x /= 4;
         max_y /= 4;
